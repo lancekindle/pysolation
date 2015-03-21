@@ -58,24 +58,36 @@ class Player:
 class GameBoard:
     REMOVE_TILE = 5
     MOVE_PLAYER = 6
+    Player = Player
+    Tile = Tile
+    board = None
 
-    def __init__(self, size=(8,8)):
+    def setup(self, size=(8,8)):
         w, h = size
         self.w = w
         self.h = h
         rows = []
         for x in range(w):
-            col = [Tile(x,y) for y in range(h)]
+            col = [self.Tile(x,y) for y in range(h)]
             rows.append(col)
         self.board = np.array(rows)
         self.players = [] # first player in list ALWAYS has turn
         self.turnType = self.MOVE_PLAYER  # first player's turn is to move
 
+    def __getitem__(self, *args):
+        return self.board.__getitem__(*args)
+
+    def __setitem__(self, *args):
+        self.board.__setitem__(*args)
+
+    def __str__(self):
+        return str(self.board)
+
     def add_players(self, qty):
         startingPositions = self.get_starting_positions_for_players(qty)
         self.players = [None]*qty
         for i in range(qty):
-            p = Player(*startingPositions[i])
+            p = self.Player(*startingPositions[i])
             self.players[i] = p
             self.move_player(p, p.x, p.y)
 
@@ -176,20 +188,21 @@ class GameBoard:
 
 
 class Game:
+    GameBoard = GameBoard
+    Player = Player
+    Tile = Tile
 
-    def __init__(self):
-        self.board = GameBoard()
-        self.board.add_players(3)
-
-    def start_game(self):
-        pass
-        
-
+    def setup(self):
+        self.board = self.GameBoard()
+        self.board.Player = self.Player  # set up proper inheritance
+        self.board.Tile = self.Tile
+        self.board.setup()
+        self.board.add_players(2)
     
 
     
 
-    
+# HTML INTERFACE?
         
 
 
@@ -198,5 +211,6 @@ if __name__ == '__main__':
 ##    b = GameBoard()
 ##    board = b.board
     game = Game()
+    game.setup()
     board = game.board.board
     print(board)
