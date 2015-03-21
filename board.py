@@ -81,7 +81,7 @@ class GameBoard:
         self.board.__setitem__(*args)
 
     def __str__(self):
-        return str(self.board)
+        return str(self.board.transpose())  # transpose because numpy's representation will show x/y reversed
 
     def add_players(self, qty):
         startingPositions = self.get_starting_positions_for_players(qty)
@@ -183,8 +183,7 @@ class GameBoard:
         for player in players[1:]:
             if not is_player_trapped(player):
                 return False
-        return True
-        
+        return True        
 
 
 class Game:
@@ -198,19 +197,12 @@ class Game:
         self.board.Tile = self.Tile
         self.board.setup()
         self.board.add_players(2)
-    
-
-    
-
-# HTML INTERFACE?
         
 
 
 # only run this code if run directly, NOT imported
 if __name__ == '__main__':
-##    b = GameBoard()
-##    board = b.board
     game = Game()
     game.setup()
-    board = game.board.board
+    board = game.board
     print(board)
