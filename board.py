@@ -30,7 +30,7 @@ class Tile:
             return False
         if obj == self.player:
             return True
-        if obj == self:
+        if obj is self:
             return True
         return False
 
