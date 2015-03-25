@@ -61,9 +61,25 @@ class GameBoard:
     Player = Player
     Tile = Tile
     board = None
+    shape = (0, 0)
 
+    def to_numpy_grid(self):
+        ''' returns a numpy array representing the state of the tiles. 
+        0 = invisible / removed, 1 = present, -1 = player occupying location
+        '''
+        h, w = self.shape
+        grid = np.zeros((h, w))
+        for x in range(w):
+            for y in range(h):
+                if self.board[x, y].visible:
+                    grid[y, x] += 1
+                if self.board[x, y].player:
+                    grid[y, x] -= 2
+        return grid
+    
     def setup(self, size=(8,8)):
         w, h = size
+        self.shape = (h, w)
         self.w = w
         self.h = h
         rows = []
