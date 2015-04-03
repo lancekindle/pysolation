@@ -42,7 +42,7 @@ class PathPoint(object):
     def __hash__(self):
         ''' for set(). a set requires a hash in order to work
         '''
-        return self.x * 10000000 + self.y * 10000 + self.cost
+        return int(self.x * 10000000 + self.y * 10000 + self.cost)
 
     def __add__(self, other):
         pt = self.__class__(self.x + other.x, self.y + other.y,
@@ -139,22 +139,35 @@ class PathFinder:
     explored = None
     grid = None
 
-    def __init__(self, grid, startPoint, goalPoint, movesToUse):
+    def __init__(self, grid, startPoint, goalPoint, movesToUse=None):
         self.frontier = []
         self.grid = grid
         self.xy = []  # kinda like explored already nodes
         self.explored = []
         self.goal = PathPoint(goalPoint.x, goalPoint.y)
         PathPoint.set_goal(self.goal)
+        if movesToUse is None:
+            movesToUse = PathStep.get_all_8_directions()
         self.movesToUse = movesToUse
         self.startPoint = PathPoint(startPoint.x, startPoint.y)
         self.add_point_to_frontier(self.startPoint)
 
-    def add_point_to_frontier(self, point):
+    def add_point_to_frontier_if_valid(self, point):
+        ''' check that point is unique, unexplored, and not a gap or player point, then adds it if valid
+        :param point: PathPoint for location to be added
+        :return:None
+        '''
         if point in self.frontier or point in self.explored: # we have explored this point previously
             return
         if not self.grid.contains_tile(point):
             return  # skip point that is not a tile. (maybe a gap or player or out of bounds instead)
+        self.add_point_to_frontier(point)
+
+    def add_point_to_frontier(self, point):
+        ''' Add point to frontier, no checks made. Usually this is only called during initialization
+        :param point: PathPoint
+        :return:
+        '''
         self.xy.append(point.xy)
         self.frontier.append(point)
         self.frontier.sort()
@@ -169,16 +182,16 @@ class PathFinder:
     def goal_is_reached(self):
         ''' determines if one of the current point has reached the goalPoint
         '''
-        if goal in self.frontier or goal in self.explored:
+        if self.goal in self.frontier or self.goal in self.explored:
             return True
         return False
 
     def march_until_goal_reached(self):
         while not self.goal_is_reached():
-            bestPoint = frontier.pop_from_frontier()
+            bestPoint = self.pop_from_frontier()
             for move in self.movesToUse:
                 newSpot = bestPoint + move
-                frontier.add_point_to_frontier(newSpot)
+                self.add_point_to_frontier_if_valid(newSpot)
 
     def get_best_path(self):
         self.march_until_goal_reached()
@@ -199,8 +212,8 @@ class PathFinder:
             print('last frontier point coordinate not same as goal. A* will be truncated')
         tracebackPoints = [closestPt]  # we add pt instead of self.goal because pt has correct cost
         traceback = tracebackPoints[-1]
-        while frontier.explored:  # until we've exausted the list
-            point = frontier.explored.pop(-1)  # access last element is lowest cost
+        while self.explored:  # until we've exausted the list
+            point = self.explored.pop(-1)  # access last element is lowest cost
                 # lowest cost point is closest to goal. So long as we prove that it was
                 # within move range from the previous one
             for move in self.movesToUse:
@@ -214,14 +227,14 @@ class PathFinder:
 
 
 if __name__ == '__main__':
-    grid = Grid(4, 4, PathPoint)
-    goal = PathPoint(3,3)
-    start = PathPoint(0,1)
-    movements = PathStep.get_all_8_directions()
-    movements  = PathStep.get_orthogonal_steps()
+    ggrid = Grid(4, 4, PathPoint)
+    ggoal = PathPoint(3,3)
+    sstart = PathPoint(0,1)
+    mmovements = PathStep.get_all_8_directions()
+    mmovements  = PathStep.get_orthogonal_steps()
     #movements = PathStep.get_diagonal_steps()
-    frontier = PathFinder(grid, start, goal, movements)
-    path = frontier.get_best_path()  # goal should have lowest cost
+    ffrontier = PathFinder(ggrid, sstart, ggoal) #, mmovements)
+    path = ffrontier.get_best_path()  # goal should have lowest cost
     print(path)
     # backtrack through explored points, choosing lowest cost
     # lowest-cost points should be closest to goal. And yet, at some point if there was a bifurcation, then

@@ -11,8 +11,14 @@ class Grid:
     def __init__(self, w, h, Point):
         self.shape = (h, w)  # for numpy stuff
         self.w, self.h = w, h
-        self.grid = np.zeros(self.shape) + self.TILE
+        self.grid = np.zeros((w, h)) + self.TILE
         self.Point = Point  # store instance of Point class
+
+    def __iter__(self):
+        for x in range(self.w):
+            for y in range(self.h):
+                pt = self.Point(x, y)
+                yield x, y, pt
 
     def __getitem__(self, pt):
         if pt.x < 0 or pt.y < 0:  #only allow single point indexing
@@ -30,7 +36,7 @@ class Grid:
             newgrid.grid = self.grid - other.grid
             return newgrid
         else:  # commit subtraction operation to numpy array
-            self.grid.__sub__(other)
+            self.grid = self.grid.__sub__(other)
             return self
 
     def __add__(self, other):
@@ -39,7 +45,7 @@ class Grid:
             newgrid.grid = self.grid + other.grid
             return newgrid
         else:  # assume it targetting the actual numpy array
-            self.grid.__add__(other)
+            self.grid = self.grid.__add__(other)
             return self
 
     def __repr__(self):
@@ -54,10 +60,6 @@ class Grid:
         if pt.x >= self.w or pt.y >= self.h:
             return True
         return False
-
-    def get_highest_value_point(self):
-        ''' search all grid and return Point(x, y) of highest-value location in grid
-        '''
 
     def get_all_tile_points_around_point(self, pt):
         verticals = [-1, 0 , 1]
@@ -150,6 +152,13 @@ class Grid:
 
     def contains_gap(self, pt):
         return self.point_contains_type(pt, self.GAP)
+
+    def get_first_highest_value_point(self):
+        maxval = self.grid.max()
+        for x in range(self.w):
+            for y in range(self.h):
+                if self[self.Point(x, y)] == maxval:
+                    return self.Point(x,y)
 
         
 if __name__ == '__main__':

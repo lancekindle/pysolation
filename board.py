@@ -1,11 +1,15 @@
 import numpy as np
 import math
+import AI
+from Grid import Grid
+import Astar
 
 class Coordinate:
 
     def __init__(self, xfloat, yfloat):
         self.x = math.floor(xfloat)
         self.y = math.floor(yfloat)
+        self.xy = (self.x, self.y)
         self.xfloat = xfloat
         self.yfloat = yfloat
 
@@ -76,6 +80,11 @@ class GameBoard:
                 if self.board[x, y].player:
                     grid[y, x] -= 2
         return grid
+
+    def __iter__(self):
+        for x in range(self.w):
+            for y in range(self.h):
+                yield x, y, self.board[x, y]
     
     def setup(self, size=(8,8)):
         w, h = size
@@ -199,7 +208,20 @@ class GameBoard:
         for player in players[1:]:
             if not is_player_trapped(player):
                 return False
-        return True        
+        return True
+
+    def convert_to_grid(self):
+        grid = Grid(self.w, self.h, Astar.PathPoint)
+        gaps = []
+        players = []
+        for x, y, tile in self:
+            if not tile.visible:
+                gaps.append(Astar.PathPoint(x, y))
+            if tile.player:
+                players.append(Astar.PathPoint(x, y))
+        grid.set_gap_points(gaps)
+        grid.set_player_points(players)
+        return grid
 
 
 class Game:

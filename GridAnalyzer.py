@@ -2,14 +2,16 @@ from __future__ import print_function
 from Grid import Grid
 from Astar import PathPoint as Point
 
-
+# if you see an error like: ValueError: setting an array element with a sequence.
+# then you are probably accidentally accessing a numpy array with a point
+# array[pt] like that, when you should be accessing grid[pt].
 class BaseMap(object):
 
     def __init__(self, grid):
         self._grid = grid
 
     def generate(self, mapp, frontier, includePlayerPt=False):
-        grid = self._grid  # Grid(self._grid)
+        grid = self._grid
         explored = set()
         nextwave = set()
         wave = 1
@@ -41,7 +43,9 @@ class MovementMap(BaseMap):
         return super(MovementMap, self).generate(mapp, frontier)
 
 class SafeTileMap(BaseMap):
-    ''' generates a map with values representing distance from removed tiles and sides.
+    ''' generates a map with values representing distance from removed tiles, players, and sides.
+        values of 0 represent where a player or gap exists. Points neighboring those will have value of 1,
+        and all other locations will have increasingly larger positive values the farther from 0's they are.
     '''
 
     def generate(self):
@@ -66,30 +70,37 @@ class SummedSafeTileMap(SafeTileMap):
 
     def create_summed_version(self, tilemap):
         w, h = tilemap.get_shape()
-        summed = Grid(w, h, Point) - Grid.TILE
-##        summed = np.zeros(tilemap.shape)
-        w, h = tilemap.shape
-        for x in range(w):
-            for y in range(h):
-                pt = Point(x, y)
-                if tilemap[pt] > 0:  # if it's an open spot  # pt.x, pt.y
-                    pts = grid.get_all_tile_points_around_point(pt)
-                    for valuePt in pts:
-                        summed[pt] += tilemap[valuePt]
+        summed = Grid(w, h, Point) - Grid.TILE  # a grid of all 0's
+        for x, y, pt in tilemap:
+            if tilemap[pt] > 0:  # tilemap[pt] == 0 where there are players or gaps. All other values are positive.
+                pts = tilemap.get_all_tile_points_around_point(pt)
+                for valuePt in pts:
+                    summed[pt] += tilemap[valuePt]
         return summed
 
         
 class GridAnalyzer:
     grid = None
+    verbose = False
+    
     def __init__(self, grid, startPoint):
         self.grid = grid
-        self.startPoint = startPoint
+        self.startPoint = Point(startPoint.x, startPoint.y)
 
     def get_analyzed_grid(self):
+        ''' analyze self.grid without changing it
+        '''
+        stm = SafeTileMap(self.grid)
+        safemap = stm.generate()
         sstm = SummedSafeTileMap(self.grid)
-        sumtilemap = sstm.generate()
+        sumtilemap = sstm.generate()  
         mm = MovementMap(self.grid, self.startPoint)
         movemap = mm.generate()
+        if self.verbose:
+            print('safemap;\n', safemap)
+            print('sumtilemap;\n', sumtilemap)
+            print('movemap;\n', movemap)
+            print('final;\n', sumtilemap - movemap)
         return sumtilemap - movemap
 
     def get_target_point(self):
@@ -97,6 +108,7 @@ class GridAnalyzer:
             in the grid, reachable from the startPoint
         '''
         computedGrid = self.get_analyzed_grid()
+        return computedGrid.get_first_highest_value_point()
 
         
 if __name__ == '__main__':
@@ -108,15 +120,7 @@ if __name__ == '__main__':
     grid.set_gap_points(gapPts)
     ga = GridAnalyzer(grid, playerPt)
     bestGrid = ga.get_analyzed_grid()
+    bestPoint1 = bestGrid.get_first_highest_value_point()
     print(bestGrid)
-##    sstm = SummedSafeTileMap(grid)
-##    sumtilemap = sstm.generate()
-##    stm = SafeTileMap(grid)
-##    tilemap = stm.generate()
-##    mm = MovementMap(grid, playerPt)
-##    movemap = mm.generate()
-##    print(movemap, '\n')
-##    print(tilemap, '\n')
-##    print(sumtilemap, '\n')
-##    print(sumtilemap - movemap, '\n')
+    print(bestPoint1)
     
