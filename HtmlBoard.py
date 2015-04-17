@@ -10,8 +10,9 @@ class HtmlTile(board.Tile):
         else:
             visibility = 'hidden'
         html = '<div class="tile ' + visibility  + '">'  # build html representing tile
-        if self.link:
-            html += '<a href="' + self.link + '" class="tile-link"></a>'
+        if self.visible and not self.player:  # do not allow clicking on tile if it's removed or player occupied
+            if self.link:
+                html += '<a href="' + self.link + '" class="tile-link"></a>'
         if self.player:
             html += self.player.to_html()
         html += '</div>'
@@ -60,6 +61,12 @@ class HtmlGameBoard(board.GameBoard):
                 if x == x2 and y == y2:  # skip tile under player
                     continue
                 tile.set_link("/move_player_to/" + str(x2) + ',' + str(y2))
+
+    def set_tile_links_for_tile_remove(self):
+        for row in self.board:
+            for tile in row:
+                x, y = tile.x, tile.y
+                tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
 
     def set_tile_links(self):
         self.reset_links()

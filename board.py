@@ -150,12 +150,45 @@ class GameBoard:
             positions.append(pos)
         return positions
 
+    def setup_next_player_turn(self):
+        # check for game over
+        if self.is_game_over():
+            return        
+        # queue next player
+        self.turnType = self.MOVE_PLAYER
+        player = self.players.pop(0)
+        self.players.append(player)
+
+    def setup_next_turn(self):
+        # check for game over
+        if self.is_game_over():
+            self.end_game()
+            return
+        if self.turnType == self.MOVE_PLAYER:
+            self.turnType = self.REMOVE_TILE
+            return
+        elif self.turnType == self.REMOVE_TILE:
+            self.turnType = self.MOVE_PLAYER
+            player = self.players.pop(0)
+            self.players.append(player)
+
+    def setup_players_remove_turn(self):
+        # check for game over
+        if self.is_game_over():
+            return
+        # setup tile remove turn
+        self.turnType = self.REMOVE_TILE
+
+    def end_game(self):
+        pass
+
     def get_at(self, x, y):
         return self.board[x, y]
 
     def get_player_at(self, x, y):
         return self.get_at(x, y).player
 
+    # better to use board[x, y] = item
     def set_at(self, x, y, item):
         self.board[x, y] = item
 
@@ -164,6 +197,7 @@ class GameBoard:
 
     def get_tiles_around(self, x, y):
         # returns tiles around AND including x, y
+        # return tiles is in a mini 2D numpy array
         xsmall = max(0, x - 1)
         xbig = min(self.w, x + 2)
         ysmall = max(0, y - 1)
@@ -173,7 +207,7 @@ class GameBoard:
     def is_valid_player_move(self, player, x, y):
         if not self.get_at(x, y).visible:
             return False
-        if not self.get_at(x, y) in self.get_platforms_around(player.x, player.y):
+        if not self.get_at(x, y) in self.get_tiles_around(player.x, player.y):
             return False
         if self.get_player_at(x, y):
             return False
@@ -195,19 +229,28 @@ class GameBoard:
         target = self.get_at(x, y)
         target.player = player
 
+    def move_active_player(self, x, y):
+        player = self.players[0]
+        self.move_player(player, x, y)
+
+    def get_active_player(self):
+        return self.players[0]
+
     def remove_tile(self, tile):
         tile.set_visible(False)
 
     def is_player_trapped(self, player):
-        for tile in get_tiles_around(player.x, player.y):
-            if is_valid_player_move(player, tile.x, tile.y):
-                return False
+        for row in self.get_tiles_around(player.x, player.y):
+            for tile in row:
+                if self.is_valid_player_move(player, tile.x, tile.y):
+                    return False
         return True
 
     def is_game_over(self):
-        for player in players[1:]:
-            if not is_player_trapped(player):
+        for player in self.players[1:]:
+            if not self.is_player_trapped(player):
                 return False
+        self.end_game()  # set up gameover stuff
         return True
 
     def convert_to_grid(self):
@@ -235,7 +278,20 @@ class Game:
         self.board.Tile = self.Tile
         self.board.setup()
         self.board.add_players(2)
-        
+
+    def player_removes_tile(self, x, y):
+        if self.board.turnType == self.board.REMOVE_TILE and self.board.is_valid_tile_remove(x, y):
+            self.board.remove_at(x, y)
+            self.board.setup_next_turn()
+            #self.board.setup_next_player_turn()
+
+    def player_moves_player(self, x, y):
+        player = self.board.get_active_player()
+        if self.board.turnType == self.board.MOVE_PLAYER and self.board.is_valid_player_move(player, x, y):
+            self.board.move_active_player(x, y)
+            self.board.setup_next_turn()
+            #self.board.setup_players_remove_turn()
+
 
 
 # only run this code if run directly, NOT imported

@@ -227,14 +227,14 @@ class PathFinder:
 
 
 if __name__ == '__main__':
-    ggrid = Grid(4, 4, PathPoint)
-    ggoal = PathPoint(3,3)
-    sstart = PathPoint(0,1)
-    mmovements = PathStep.get_all_8_directions()
-    mmovements  = PathStep.get_orthogonal_steps()
+    grd = Grid(4, 4, PathPoint)
+    go = PathPoint(3,3)
+    st = PathPoint(0,1)
+    moven = PathStep.get_all_8_directions()
+    moven  = PathStep.get_orthogonal_steps()
     #movements = PathStep.get_diagonal_steps()
-    ffrontier = PathFinder(ggrid, sstart, ggoal) #, mmovements)
-    path = ffrontier.get_best_path()  # goal should have lowest cost
+    pf = PathFinder(grd, st, go) #, mmovements)
+    path = pf.get_best_path()  # goal should have lowest cost
     print(path)
     # backtrack through explored points, choosing lowest cost
     # lowest-cost points should be closest to goal. And yet, at some point if there was a bifurcation, then

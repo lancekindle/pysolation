@@ -19,8 +19,12 @@ def nhello():
 
 @app.route("/move_player_to/<int:x>,<int:y>")
 def move_player_to(x, y):
-    player = game.board.players[0] # hard coded player  -- can change that using index of players in url
-    game.board.move_player(player, x, y)
+    game.player_moves_player(x, y)
+    return game.to_html()
+
+@app.route("/remove_tile_at/<int:x>,<int:y>")
+def remove_tile_at(x, y):
+    game.player_removes_tile(x, y)
     return game.to_html()
 
 if __name__ == "__main__":
