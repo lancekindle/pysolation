@@ -13,10 +13,6 @@ game.setup()  # can manipulate game within our functions
 def root_url():
     return game.to_html()
 
-@app.route("/two.html")
-def nhello():
-    return "next time!"
-
 @app.route("/move_player_to/<int:x>,<int:y>")
 def move_player_to(x, y):
     game.player_moves_player(x, y)
@@ -28,5 +24,6 @@ def remove_tile_at(x, y):
     return game.to_html()
 
 if __name__ == "__main__":
-    app.run(debug=True)  # run with debug=True to allow interaction & feedback when page doesn't load
-                    # however, debug mode is super unsecure, so don't use it when allowing any ip
+    app.run(debug=True)  # run with debug=True to allow interaction & feedback when
+                    # error / exception occurs.
+                    # however, debug mode is super unsecure, so don't use it when allowing any ip connection

@@ -18,6 +18,15 @@ class HtmlTile(board.Tile):
         html += '</div>'
         return html
 
+    @classmethod
+    def get_style(cls, size='50px'):
+        style = 'div.tile { position: relative; width: ' + size + '; height: ' + size + ';'
+        style += 'float: left; margin: 2px; }'
+        style += 'div.tile.visible { background-color: yellow }'
+        style += 'div.tile.hidden { background-color: transparent; }'
+        style += 'a.tile-link { display: block; width: ' + size + '; height: ' + size + '; }'
+        return style
+
     def reset_links(self):
         self.link = None
 
@@ -30,6 +39,10 @@ class HtmlPlayer(board.Player):
     def to_html(self):# build html representing player
         html = '<div class="player" style="background-color:' + self.color + '"></div>'
         return html
+
+    @classmethod
+    def get_style(cls, size='50px'):
+        return 'div.player { width: ' + size + '; height: ' + size + '; border-radius: 50%; }'
 
 
 class HtmlGameBoard(board.GameBoard):
@@ -45,6 +58,10 @@ class HtmlGameBoard(board.GameBoard):
             html += '</div>'  # or some other visual break between rows
         html += 'GameBoard tail'  # add extras
         return html
+
+    @classmethod
+    def get_style(cls, size='50px'):
+        return 'div.row { overflow: hidden; }'  # set each row on newline
 
     def reset_links(self):
         for row in self.board:
@@ -68,15 +85,6 @@ class HtmlGameBoard(board.GameBoard):
                 x, y = tile.x, tile.y
                 tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
 
-    def set_tile_links(self):
-        self.reset_links()
-        if self.turnType == self.MOVE_PLAYER:
-            self.set_tile_links_for_player_move()
-        elif self.turnType == self.REMOVE_TILE:
-            self.set_tile_links_for_tile_remove()
-        else:
-            raise  # problem with our logic
-
 
 class HtmlGame(board.Game):
     GameBoard = HtmlGameBoard
@@ -87,23 +95,27 @@ class HtmlGame(board.Game):
         # assume players turn to move
         self.prep_links()
         html = self.board.to_html()
-##        h, w = self.board.board.shape
-        width = '50px'
-        height = '50px'
-        style = '<style> div.player { width: ' + width + '; height: ' + height + '; border-radius: 50%; }'
-        style += 'div.tile { position: relative; width: ' + width + '; height: ' + height + ';'
-        style += 'float: left; margin: 2px; }'
-        style += 'div.tile.visible { background-color: yellow }'
-        style += 'div.tile.hidden { background-color: transparent; }'
-        style += 'div.row { overflow: hidden; }'
-        style += 'a.tile-link { display: block; width: ' + width + '; height: ' + height + '; }'
-        style += '</style>'
+        style = self.get_style('50px')  # even though it's a class method, we called using self, meaning
+                            # that the function will use this instance and its variables instead of the class's
         return style + html
+    
+    @classmethod
+    def get_style(cls, size='50px'):
+        style = '<style>'
+        style += cls.GameBoard.get_style(size)
+        style += cls.Tile.get_style(size)
+        style += cls.Player.get_style(size)
+        style += '</style>'
+        return style
 
     def prep_links(self):
-        self.board.set_tile_links()
-        
-        
+        self.board.reset_links()
+        if self.turnType == self.MOVE_PLAYER:
+            self.board.set_tile_links_for_player_move()
+        elif self.turnType == self.REMOVE_TILE:
+            self.board.set_tile_links_for_tile_remove()
+        else:
+            raise  # problem with our logic
 
 
 if __name__ == '__main__':
