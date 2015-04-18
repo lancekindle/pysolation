@@ -217,6 +217,8 @@ class Game:
     GameBoard = GameBoard
     Player = Player
     Tile = Tile
+    turnSuccessful = False  # a status indicator only.
+    turnType = None
 
     def setup(self):
         self.board = self.GameBoard()
@@ -228,6 +230,10 @@ class Game:
     
     def get_active_player(self):
         return self.board.players[0]
+
+    def setup_next_active_player(self):
+        player = self.board.players.pop(0)
+        self.board.players.append(player)
     
     def setup_next_turn(self):
         # check for game over
@@ -239,8 +245,7 @@ class Game:
             return
         elif self.turnType == self.REMOVE_TILE:
             self.turnType = self.MOVE_PLAYER
-            player = self.board.players.pop(0)
-            self.board.players.append(player)
+            self.setup_next_active_player()
 
     def end_game(self):
         pass
@@ -255,12 +260,18 @@ class Game:
         if self.turnType == self.REMOVE_TILE and self.board.is_valid_tile_remove(x, y):
             self.board.remove_at(x, y)
             self.setup_next_turn()
+            self.turnSuccessful = True
+        else:
+            self.turnSuccessful = False
 
     def player_moves_player(self, x, y):
         player = self.get_active_player()
         if self.turnType == self.MOVE_PLAYER and self.board.is_valid_player_move(player, x, y):
             self.board.move_player(player, x, y)
             self.setup_next_turn()
+            self.turnSuccessful = True
+        else:
+            self.turnSuccessful = False
 
 
 # only run this code if run directly, NOT imported
