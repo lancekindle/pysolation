@@ -5,7 +5,7 @@ from flask import Flask
 class HtmlTile(board.Tile):
     link = None
 
-    def to_html(self):
+    def get_html(self):
         if self.visible:
             visibility = 'visible'
         else:
@@ -15,7 +15,7 @@ class HtmlTile(board.Tile):
             if self.link:
                 html += '<a href="' + self.link + '" class="tile-link"></a>'
         if self.player:
-            html += self.player.to_html()
+            html += self.player.get_html()
         html += '</div>'
         return html
 
@@ -37,7 +37,7 @@ class HtmlTile(board.Tile):
 
 class HtmlPlayer(board.Player):
 
-    def to_html(self):# build html representing player
+    def get_html(self):# build html representing player
         html = '<div class="player" style="background-color:' + self.color + '"></div>'
         return html
 
@@ -50,12 +50,12 @@ class HtmlGameBoard(board.GameBoard):
     Player = HtmlPlayer
     Tile = HtmlTile
 
-    def to_html(self):
+    def get_html(self):
         html = ''
         for row in self.board:
             html += '<div class="row">'
             for tile in row:
-                html += tile.to_html()
+                html += tile.get_html()
             html += '</div>'  # or some other visual break between rows
         html += 'GameBoard tail'  # add extras
         return html
@@ -92,9 +92,9 @@ class HtmlGame(board.Game):
     Player = HtmlPlayer  # "magically" this now will spawn an HtmlPlayer, not just a normal player
     Tile = HtmlTile
 
-    def to_html(self):
+    def get_html(self):
         self.prep_links()
-        html = self.board.to_html()
+        html = self.board.get_html()
         style = self.get_style('50px')  # even though it's a class method, we called using self, meaning
                             # that the function will use this instance and its variables instead of the class's
         return '<style>' + style  + '</style>' + html
@@ -117,27 +117,24 @@ class HtmlGame(board.Game):
 
 
 if __name__ == '__main__':
-    # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
-    app = Flask(__name__)
+    app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
     game = HtmlGame()
-    game.setup()  # can manipulate game within our functions
+    game.setup()
 
-    # tell flask what url should trigger this function
-    # "/" would mean our root url
     @app.route("/")
     def root_url():
-        return game.to_html()
+        return game.get_html()
 
     @app.route("/move_player_to/<int:x>,<int:y>")
     def move_player_to(x, y):
         game.player_moves_player(x, y)
-        return game.to_html()
+        return game.get_html()
 
     @app.route("/remove_tile_at/<int:x>,<int:y>")
     def remove_tile_at(x, y):
         game.player_removes_tile(x, y)
-        return game.to_html()
+        return game.get_html()
 
     app.run(debug=True)  # run with debug=True to allow interaction & feedback when
                     # error / exception occurs.

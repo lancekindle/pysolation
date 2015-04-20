@@ -1,8 +1,5 @@
 import numpy as np
 import math
-import AI
-from Grid import Grid
-import Astar
 
 
 class Tile:
@@ -18,12 +15,6 @@ class Tile:
     """
 
     def __init__(self, x, y):
-        """ initialize the tile with x and y coordinates. The actual Tile instance does not control where in a GameBoard
-        it will be placed. That is up to the GameBoard setup. All Tiles initialize visible and not solid.
-
-        :param x:
-        :param y:
-        """
         self.x = x
         self.y = y
         self.visible = True
@@ -120,6 +111,10 @@ class GameBoard:
                 yield x, y, self.board[x, y]
     
     def setup(self, size=(9,9)):
+        """ populate board with Tiles, according to the size argument
+
+        :param size: size of board to construct in (x, y) format.
+        """
         w, h = size
         self.shape = (h, w)
         self.w = w
@@ -129,7 +124,7 @@ class GameBoard:
             col = [self.Tile(x,y) for y in range(h)]
             rows.append(col)
         self.board = np.array(rows)
-        self.players = [] # first player in list ALWAYS has turn
+        self.players = []
 
     def __getitem__(self, *args):
         return self.board.__getitem__(*args)
@@ -141,6 +136,7 @@ class GameBoard:
         return str(self.board.transpose())  # transpose because numpy's representation will show x/y reversed
 
     def add_players(self, qty):
+        """ add players to the board in quantity specified, spacing them equally apart """
         startingPositions = self.get_starting_positions_for_players(qty)
         self.players = [None]*qty
         for i in range(qty):
@@ -149,6 +145,9 @@ class GameBoard:
             self.move_player(p, p.x, p.y)
 
     def out_of_bounds(self, x, y):
+        """ Return True if coordinates x, y are outside the boundaries of the GameBoard. Return False if a Tile is
+        accessible at those coordinates
+        """
         w, h = self.w, self.h
         if x >= w or y >= h:
             return True
@@ -156,7 +155,8 @@ class GameBoard:
             return True
         return False
 
-    def get_next_tile_coordinate_from(self, x, y, radians):
+    def _get_next_tile_coordinate_from(self, x, y, radians):
+        """ calculate next available integer coordinates given x, y float coordinates, and an angle to follow """
         floor = math.floor
         xf =floor(x)
         yf = floor(y)
@@ -165,32 +165,35 @@ class GameBoard:
             y += 0.1 * math.sin(radians)
         return (x, y)
 
-    def get_target_position_from(self, x, y, radians):
+    def _get_last_valid_coordinate_along_vector(self, x, y, radians):
+        """ calculate coordinates along vector (given x, y and angle to follow) and return last valid coordinates """
         while not self.out_of_bounds(x, y):
             validX, validY = x, y
-            x, y = self.get_next_tile_coordinate_from(x, y, radians)
+            x, y = self._get_next_tile_coordinate_from(x, y, radians)
         return (validX, validY)
     
     def get_starting_positions_for_players(self, qty):
+        """ calculate (x, y) coordinates for qty of players, equally distributing them around the edges of the board """
         positions = []
         midx, midy = float(self.w / 2.0), float(self.h / 2.0)
         for i in range(qty):
             fraction = 1.0 * i / qty
             radians = 2.0 * math.pi * fraction
-            x, y = self.get_target_position_from(midx, midy, radians)
+            x, y = self._get_last_valid_coordinate_along_vector(midx, midy, radians)
             pos = (math.floor(x), math.floor(y))
             positions.append(pos)
         return positions
 
     def get_player_at(self, x, y):
+        """ return player attribute of tile at specified x, y coordinates """
         return self[x, y].player
 
     def remove_at(self, x, y):
+        """ "Remove" Tile at specified coordinate. This will set the visible attribute to False """
         self.board[x, y].visible = False
 
     def get_tiles_around(self, x, y):
-        # returns tiles around AND including x, y
-        # return tiles is in a mini 2D numpy array
+        """ :return:numpy array of tiles surrounding given coordinate, including tile @ coordinate itself """
         xsmall = max(0, x - 1)
         xbig = min(self.w, x + 2)
         ysmall = max(0, y - 1)
@@ -198,6 +201,7 @@ class GameBoard:
         return self.board[xsmall:xbig, ysmall:ybig]
 
     def is_valid_player_move(self, player, x, y):
+        """ :return: True if x, y coordinate is an open tile and next to the specified player, False otherwise. """
         if not self[x, y].visible:
             return False
         if not self[x, y] in self.get_tiles_around(player.x, player.y):
@@ -207,6 +211,7 @@ class GameBoard:
         return True
 
     def is_valid_tile_remove(self, x, y):
+        """ :return: True if Tile is visible on board, not solid, and unoccupied by a player, False otherwise. """
         if not self[x, y].visible:
             return False
         if self[x, y].solid:
@@ -216,37 +221,35 @@ class GameBoard:
         return True
 
     def move_player(self, player, x, y):
+        """ move player from occupied tile to tile @ x, y coordinates. """
         tile = self[player.x, player.y]
         tile.player = None
         player.move_to(x, y)
         target = self[x, y]
         target.player = player
 
-    def remove_tile(self, tile):
-        tile.set_visible(False)
-
     def is_player_trapped(self, player):
+        """ determine if player token is unable to move from current position.
+        :param player: player instance to check
+        :return: False if any tiles surrounding player is a valid move, True otherwise
+        """
         for row in self.get_tiles_around(player.x, player.y):
             for tile in row:
                 if self.is_valid_player_move(player, tile.x, tile.y):
                     return False
         return True
 
-    def convert_to_grid(self):
-        grid = Grid(self.w, self.h, Astar.PathPoint)
-        gaps = []
-        players = []
-        for x, y, tile in self:
-            if not tile.visible:
-                gaps.append(Astar.PathPoint(x, y))
-            if tile.player:
-                players.append(Astar.PathPoint(x, y))
-        grid.set_gap_points(gaps)
-        grid.set_player_points(players)
-        return grid
-
 
 class Game:
+    """ Game keeps track of the GameBoard and game-state. It is responsible for interfacing with the user/player,
+    checking that any tile remove or player token move action is valid and then applying the action. It also keeps
+    track of whose turn it is, and what type of turn it is (removing tile or moving player).
+
+    Attributes:
+        turnSuccessful: True or False if the last command (to move player or remove tile) was valid and executed
+        turnType: type of turn, REMOVE_TILE or MOVE_PLAYER.
+        board: reference to the gameboard.
+    """
     REMOVE_TILE = 5
     MOVE_PLAYER = 6
     GameBoard = GameBoard
@@ -264,6 +267,7 @@ class Game:
         self.turnType = self.MOVE_PLAYER  # first player's turn is to move
     
     def get_active_player(self):
+        """ return player who has "control" of current turn """
         return self.board.players[0]
 
     def setup_next_active_player(self):
@@ -281,7 +285,7 @@ class Game:
                 trappedPlayerFound = False  # we found an untrapped player, and have set as active player.
     
     def setup_next_turn(self):
-        # check for game over
+        """ Cycle game state from one turn to the next, cycling through active players as necessary. """
         if self.is_game_over():
             self.end_game()
             return
@@ -296,12 +300,16 @@ class Game:
         pass
 
     def is_game_over(self):
+        """ return True if all players--excluding active player--are either trapped or inactive (previously trapped) """
         for player in self.board.players[1:]:
+            if not player.inactive:
+                return False
             if not self.board.is_player_trapped(player):
                 return False
         return True
 
     def player_removes_tile(self, x, y):
+        """ take turn on game by removing tile. Checks that turn is valid, and afterwards rolls over to next turn """
         if self.turnType == self.REMOVE_TILE and self.board.is_valid_tile_remove(x, y):
             self.board.remove_at(x, y)
             self.setup_next_turn()
@@ -310,6 +318,7 @@ class Game:
             self.turnSuccessful = False
 
     def player_moves_player(self, x, y):
+        """ take turn on game by moving player. Checks that turn is valid, and afterwards rolls over to next turn """
         player = self.get_active_player()
         if self.turnType == self.MOVE_PLAYER and self.board.is_valid_player_move(player, x, y):
             self.board.move_player(player, x, y)

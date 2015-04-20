@@ -247,5 +247,19 @@ if __name__ == '__main__':
     # in other words, the you need to find another point whose cost >= current backtrack cost
     # AND you can get to that points.xy from the current point using the supplied movements.
     # MAKE SURE to use farther + move and compare to closer_to_goal
-    
+
+    # taken from board object
+    def convert_to_grid(self):
+        """  """
+        grid = Grid(self.w, self.h, PathPoint)
+        gaps = []
+        players = []
+        for x, y, tile in self:
+            if not tile.visible:
+                gaps.append(PathPoint(x, y))
+            if tile.player:
+                players.append(PathPoint(x, y))
+        grid.set_gap_points(gaps)
+        grid.set_player_points(players)
+        return grid
 
