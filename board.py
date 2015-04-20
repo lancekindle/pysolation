@@ -4,18 +4,26 @@ import AI
 from Grid import Grid
 import Astar
 
-class Coordinate:
-
-    def __init__(self, xfloat, yfloat):
-        self.x = math.floor(xfloat)
-        self.y = math.floor(yfloat)
-        self.xy = (self.x, self.y)
-        self.xfloat = xfloat
-        self.yfloat = yfloat
 
 class Tile:
+    """ A GameBoard is composed of rows and columns of Tiles. Each Tile has a specific x and y coordinate. It is up to
+    the GameBoard setup to ensure a Tile has the correct x and y coordinates. When a Tile is NOT visible, it is
+    considered removed from the Board, and can not be occupied by a Player.
+
+    :Attributes
+        visible: if the Tile has not been removed from the GameBoard. True=> NOT removed. False=> REMOVED FROM BOARD
+        solid: specifies if Tile is removable. If True, Tile cannot be removed
+        player: reference to player token. player = None if Tile is unoccupied. When checking if a player occupies a
+            particular Tile, use player == tile, or player in board[i, j] also works
+    """
 
     def __init__(self, x, y):
+        """ initialize the tile with x and y coordinates. The actual Tile instance does not control where in a GameBoard
+        it will be placed. That is up to the GameBoard setup. All Tiles initialize visible and not solid.
+
+        :param x:
+        :param y:
+        """
         self.x = x
         self.y = y
         self.visible = True
@@ -28,8 +36,9 @@ class Tile:
         return player + pos
 
     def __eq__(self, obj):
-        # match both the tile and player
-        # so that we can match if a player is IN board[x,y]
+        """ match both the tile and player
+        so that we can match if a player is IN board[x,y]
+        """
         if obj is None:
             return False
         if obj == self.player:
@@ -39,27 +48,53 @@ class Tile:
         return False
 
     def set_visible(self, tf):
+        """
+        :param tf: boolean True or False to set visible attribute.
+        """
         self.visible = tf
 
 
 class Player:
-    colors = ["#FF0000", "#0000FF", "#00FF00", "#FF00FF", "#00FFFF", "#FFFF00"]
+    """ Player is moved around the board, and is trapped once it cannot move on it's own turn.
+
+    Attributes:
+        x, y: x, y coordinate on the GameBoard
+        color: the color of the player token.
+        inactive: set to True when player has active turn and is unable to move. Usually this indicates Player will
+                remain inactive for the rest of the game.
+    """
+    _colors = ["#FF0000", "#0000FF", "#00FF00", "#FF00FF", "#00FFFF", "#FFFF00"]
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.color = self.colors.pop(0)
-        self.colors.append(self.color)  # put first color at end of list
-        self.gameOver = False
+        self.color = self._colors.pop(0)
+        self._colors.append(self.color)  # put first color at end of class-wide list -> so next instance gets new color
+        self.inactive = False
 
     def move_to(self, x, y):
-        """ should only be called by board's move_to() function
+        """ reassigns coordinates. Because it does not reassign player to Tile, this funciton should only be called by
+        board's move_to() function
         """
         self.x = x
         self.y = y
 
 
 class GameBoard:
+    """ GameBoard that holds the tiles and players in one place. Allow manipulation of Players and Tiles, and provide
+    functions for gathering data about specific states of the GameBoard. After initilization, requires setup() function
+    call in order to populate the GameBoard, then a call to add_players(x) to add x players to game
+
+    Attributes:
+        Player: reference to Player class. You can change which player class to instantiate by overriding this attribute
+                with your own Player class. Easiest way to do this is to through inheriting GameBoard with your own
+                GameBoard class.
+        Tile:   reference to Tile class to use when populating the GameBoard. Just Like Player, you can overwrite this
+                reference to use your own Tile class if desired.
+        board:  The actual board: a numpy array of Tiles. the GameBoard class itself provides native get and set methods
+                so that you do not have to access board directly. Instead, just use gameboard[x, y].
+        shape:  a numpy-style shape describing shape of gameboard.
+    """
     Player = Player
     Tile = Tile
     board = None
@@ -84,7 +119,7 @@ class GameBoard:
             for y in range(self.h):
                 yield x, y, self.board[x, y]
     
-    def setup(self, size=(8,8)):
+    def setup(self, size=(9,9)):
         w, h = size
         self.shape = (h, w)
         self.w = w
@@ -220,20 +255,30 @@ class Game:
     turnSuccessful = False  # a status indicator only.
     turnType = None
 
-    def setup(self):
+    def setup(self, numPlayers=2, shape=(9,9)):
         self.board = self.GameBoard()
         self.board.Player = self.Player  # set up proper inheritance
         self.board.Tile = self.Tile
-        self.board.setup()
-        self.board.add_players(2)
+        self.board.setup(shape)
+        self.board.add_players(numPlayers)
         self.turnType = self.MOVE_PLAYER  # first player's turn is to move
     
     def get_active_player(self):
         return self.board.players[0]
 
     def setup_next_active_player(self):
-        player = self.board.players.pop(0)
-        self.board.players.append(player)
+        """ Cycle through players, making next player active. Check that newly active player is not trapped. If trapped,
+        mark player as inactive and cycle to next player. Inactive players will be skipped in future cycles.
+        """
+        trappedPlayerFound = True
+        while trappedPlayerFound:  # stay in while loop until untrapped player found
+            pastPlayer = self.board.players.pop(0)  # cycle to next player
+            self.board.players.append(pastPlayer)
+            activePlayer = self.get_active_player()
+            if self.board.is_player_trapped(activePlayer) or activePlayer.inactive:
+                activePlayer.inactive = True  # set as if we just now discover active player is trapped
+            else:
+                trappedPlayerFound = False  # we found an untrapped player, and have set as active player.
     
     def setup_next_turn(self):
         # check for game over
