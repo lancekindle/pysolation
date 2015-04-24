@@ -39,18 +39,18 @@ class HtmlPlayer(board.Player):
 
     def get_html(self):# build html representing player
         activity = ''
-        if self.inactive:
-            activity = 'inactive'
-        elif self.currentPlayer:
-            activity = 'currentPlayer'
+        if self.disabled:
+            activity = 'disabled'
+        elif self.active:
+            activity = 'active'
         html = '<div class="player ' + activity + '" style="background-color:' + self.color + '"></div>'
         return html
 
     @classmethod
     def get_style(cls, size='50px'):
         style =  'div.player { width: ' + size + '; height: ' + size + '; border-radius: 50%; }'
-        style += 'div.player.currentPlayer { border: 2px solid white; box-sizing: border-box; }'
-        style += 'div.player.inactive { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.5) 5px, rgba(0, 0, 0, 0.5) 10px)}'
+        style += 'div.player.active { border: 2px solid white; box-sizing: border-box; }'
+        style += 'div.player.disabled { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.5) 5px, rgba(0, 0, 0, 0.5) 10px)}'
         return style
 
 
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
     game = HtmlGame()
-    game.setup(2, (9,9))
+    game.setup(3, (4,4))
 
     @app.route("/")
     def root_url():
