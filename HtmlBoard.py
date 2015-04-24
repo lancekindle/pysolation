@@ -1,8 +1,10 @@
-import board
-from flask import Flask
+##from board import Tile, Player, GameBoard, Game
+from board import Tile
+from RobotBoard import RobotGame as Game
+from RobotBoard import RobotGameBoard as GameBoard
+from RobotBoard import RobotPlayer as Player
 
-
-class HtmlTile(board.Tile):
+class HtmlTile(Tile):
     link = None
 
     def get_html(self):
@@ -35,7 +37,7 @@ class HtmlTile(board.Tile):
         self.link = link
     
 
-class HtmlPlayer(board.Player):
+class HtmlPlayer(Player):
 
     def get_html(self):# build html representing player
         activity = ''
@@ -54,7 +56,7 @@ class HtmlPlayer(board.Player):
         return style
 
 
-class HtmlGameBoard(board.GameBoard):
+class HtmlGameBoard(GameBoard):
     Player = HtmlPlayer
     Tile = HtmlTile
 
@@ -102,7 +104,7 @@ class HtmlGameBoard(board.GameBoard):
                 tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
 
 
-class HtmlGame(board.Game):
+class HtmlGame(Game):
     GameBoard = HtmlGameBoard
     Player = HtmlPlayer  # "magically" this now will spawn an HtmlPlayer, not just a normal player
     Tile = HtmlTile
@@ -136,6 +138,7 @@ class HtmlGame(board.Game):
 
 
 if __name__ == '__main__':
+    from flask import Flask
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
     game = HtmlGame()

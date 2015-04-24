@@ -243,7 +243,7 @@ class GameBoard(object):
         return True
 
 
-class Game:
+class Game(object):
     """ Game keeps track of the GameBoard and game-state. It is responsible for interfacing with the user/player,
     checking that any tile remove or player token move action is valid and then applying the action. It also keeps
     track of whose turn it is, and what type of turn it is (removing tile or moving player).
