@@ -23,7 +23,7 @@ class HtmlTile(board.Tile):
     def get_style(cls, size='50px'):
         style = 'div.tile { position: relative; width: ' + size + '; height: ' + size + ';'
         style += 'float: left; margin: 2px; }'
-        style += 'div.tile.visible { background-color: yellow }'
+        style += 'div.tile.visible { background-color: #FF9912 }'
         style += 'div.tile.hidden { background-color: transparent; }'
         style += 'a.tile-link { display: block; width: ' + size + '; height: ' + size + '; }'
         return style
@@ -38,17 +38,29 @@ class HtmlTile(board.Tile):
 class HtmlPlayer(board.Player):
 
     def get_html(self):# build html representing player
-        html = '<div class="player" style="background-color:' + self.color + '"></div>'
+        activity = ''
+        if self.inactive:
+            activity = 'inactive'
+        elif self.currentPlayer:
+            activity = 'currentPlayer'
+        html = '<div class="player ' + activity + '" style="background-color:' + self.color + '"></div>'
         return html
 
     @classmethod
     def get_style(cls, size='50px'):
-        return 'div.player { width: ' + size + '; height: ' + size + '; border-radius: 50%; }'
+        style =  'div.player { width: ' + size + '; height: ' + size + '; border-radius: 50%; }'
+        style += 'div.player.currentPlayer { border: 2px solid white; box-sizing: border-box; }'
+        style += 'div.player.inactive { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.5) 5px, rgba(0, 0, 0, 0.5) 10px)}'
+        return style
 
 
 class HtmlGameBoard(board.GameBoard):
     Player = HtmlPlayer
     Tile = HtmlTile
+
+    def __init__(self, *args, **kwargs):
+        super(HtmlGameBoard, self).__init__(*args, **kwargs)
+        self.footer = ''
 
     def get_html(self):
         html = ''
@@ -57,8 +69,11 @@ class HtmlGameBoard(board.GameBoard):
             for tile in row:
                 html += tile.get_html()
             html += '</div>'  # or some other visual break between rows
-        html += 'GameBoard tail'  # add extras
+        html += self.footer  # add extras
         return html
+
+    def set_footer(self, footer):
+        self.footer = footer
 
     @classmethod
     def get_style(cls, size='50px'):
@@ -112,6 +127,10 @@ class HtmlGame(board.Game):
             self.board.set_tile_links_for_player_move()
         elif self.turnType == self.REMOVE_TILE:
             self.board.set_tile_links_for_tile_remove()
+        elif self.turnType == self.GAME_OVER:
+            self.board.reset_links()
+            winner = self.get_active_player()
+            self.board.set_footer(winner.colorName + ' player wins!')
         else:
             raise  # problem with our logic
 
@@ -120,7 +139,7 @@ if __name__ == '__main__':
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
     game = HtmlGame()
-    game.setup()
+    game.setup(2, (9,9))
 
     @app.route("/")
     def root_url():

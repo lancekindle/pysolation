@@ -45,7 +45,7 @@ class Tile:
         self.visible = tf
 
 
-class Player:
+class Player(object):
     """ Player is moved around the board, and is trapped once it cannot move on it's own turn.
 
     Attributes:
@@ -54,14 +54,16 @@ class Player:
         inactive: set to True when player has active turn and is unable to move. Usually this indicates Player will
                 remain inactive for the rest of the game.
     """
-    _colors = ["#FF0000", "#0000FF", "#00FF00", "#FF00FF", "#00FFFF", "#FFFF00"]
+    _colors = [("#FF0000", "Red"), ("#0000FF", "Blue"), ("#00FF00", "Green"),
+               ("#FF00FF", "Purple"), ("#00FFFF", "Cyan"), ("#FFFF00", "Yellow")]
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.color = self._colors.pop(0)
+        self.color, self.colorName = self._colors.pop(0)
         self._colors.append(self.color)  # put first color at end of class-wide list -> so next instance gets new color
         self.inactive = False
+        self.currentPlayer = False  # for determining style. Game will set Player's currentPlayer to True when it has turn
 
     def move_to(self, x, y):
         """ reassigns coordinates. Because it does not reassign player to Tile, this funciton should only be called by
@@ -71,7 +73,7 @@ class Player:
         self.y = y
 
 
-class GameBoard:
+class GameBoard(object):
     """ GameBoard that holds the tiles and players in one place. Allow manipulation of Players and Tiles, and provide
     functions for gathering data about specific states of the GameBoard. After initilization, requires setup() function
     call in order to populate the GameBoard, then a call to add_players(x) to add x players to game
@@ -252,6 +254,7 @@ class Game:
     """
     REMOVE_TILE = 5
     MOVE_PLAYER = 6
+    GAME_OVER = 4
     GameBoard = GameBoard
     Player = Player
     Tile = Tile
@@ -265,6 +268,7 @@ class Game:
         self.board.setup(shape)
         self.board.add_players(numPlayers)
         self.turnType = self.MOVE_PLAYER  # first player's turn is to move
+        self.get_active_player().currentPlayer = True
     
     def get_active_player(self):
         """ return player who has "control" of current turn """
@@ -277,8 +281,10 @@ class Game:
         trappedPlayerFound = True
         while trappedPlayerFound:  # stay in while loop until untrapped player found
             pastPlayer = self.board.players.pop(0)  # cycle to next player
+            pastPlayer.currentPlayer = False
             self.board.players.append(pastPlayer)
             activePlayer = self.get_active_player()
+            activePlayer.currentPlayer = True
             if self.board.is_player_trapped(activePlayer) or activePlayer.inactive:
                 activePlayer.inactive = True  # set as if we just now discover active player is trapped
             else:
@@ -297,14 +303,13 @@ class Game:
             self.setup_next_active_player()
 
     def end_game(self):
+        self.turnType = self.GAME_OVER
         pass
 
     def is_game_over(self):
         """ return True if all players--excluding active player--are either trapped or inactive (previously trapped) """
         for player in self.board.players[1:]:
-            if not player.inactive:
-                return False
-            if not self.board.is_player_trapped(player):
+            if not self.board.is_player_trapped(player) and not player.inactive:
                 return False
         return True
 
