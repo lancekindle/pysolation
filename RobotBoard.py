@@ -1,52 +1,30 @@
 import board
 
 
-class RobotPlayer(board.Player):
-    # all player needs to do is trigger a POST request after ~ 1 second to request url: /robot_takes_turn/
-    # ... on the html page.
-
-    def __init__(self, *args, **kwargs):
-        super(RobotPlayer, self).__init__(*args, **kwargs)
-        self.humanControlled = True  # determine if player is a robot or not
-        if 'robot' in kwargs and kwargs['robot'] == True:
-            self.humanControlled = False  # mark this as a Robot
-
-    def take_remove_tile_turn(self, remove_tile_fxn):
-        pass
-
-    def take_move_player_turn(self, move_player_fxn):
-        pass
+class Robot(object):
+    """ controller for any non-humanControlled playing tokens. Using a board-representation, it can decide where
+    to move, and what tiles to remove. Calls to the Robot must be made for each turn: moving or removing.
+    """
 
 
 class RobotGameBoard(board.GameBoard):
-    Player = RobotPlayer
 
-    def add_players(self, humanQty, robotsQty=0):
-        """ add players to the board in quantity specified, spacing them equally apart. Robot players are added after
-        human players.
-        """
-        totalQty = humanQty + robotsQty
-        startingPositions = self.get_starting_positions_for_players(totalQty)
-        self.players = [None]*totalQty
-        for i in range(humanQty):
-            p = self.Player(*startingPositions[i])
-            self.players[i] = p
-            self.move_player(p, p.x, p.y)
-        for i in range(humanQty, totalQty):
-            p = self.Player(*startingPositions[i], robot=True)
-            self.players[i] = p
-            self.move_player(p, p.x, p.y)
+    def set_num_robot_players(self, num):
+        for i, player in enumerate(self.players[:num]):
+            player.humanControlled = False  # set robots as first NUM players
 
 
 class RobotGame(board.Game):
-    Player = RobotPlayer
+    # all game needs to do is trigger a POST request after ~ 1 second to request url: /robot_takes_turn/
+    # ... on the html page. if the active player is a robot
 
     def setup(self, numPlayers=2, shape=(9,9), numRobots=0):
         self.board = self.GameBoard()
         self.board.Player = self.Player  # set up proper inheritance
         self.board.Tile = self.Tile
         self.board.setup(shape)
-        self.board.add_players(numPlayers, numRobots)
+        self.board.add_players(numPlayers + numRobots)
+        self.board.set_num_robot_players(numRobots)
         self.turnType = self.MOVE_PLAYER  # first player's turn is to move
         self.get_active_player().active = True
 

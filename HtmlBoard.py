@@ -1,8 +1,7 @@
 ##from board import Tile, Player, GameBoard, Game
-from board import Tile
+from board import Tile, Player
 from RobotBoard import RobotGame as Game
 from RobotBoard import RobotGameBoard as GameBoard
-from RobotBoard import RobotPlayer as Player
 
 class HtmlTile(Tile):
     link = None
@@ -114,7 +113,8 @@ class HtmlGame(Game):
         html = self.board.get_html()
         style = self.get_style('50px')  # even though it's a class method, we called using self, meaning
                             # that the function will use this instance and its variables instead of the class's
-        return '<style>' + style  + '</style>' + html
+        script = self.get_scripts()
+        return '<style>' + style  + '</style>' + html + script
     
     @classmethod
     def get_style(cls, size='50px'):
@@ -122,6 +122,16 @@ class HtmlGame(Game):
         style += cls.Tile.get_style(size)
         style += cls.Player.get_style(size)
         return style
+
+    def get_scripts(self):
+        if not self.get_active_player().humanControlled:
+            return """<script>
+                                setTimeout(function(){
+                                   window.location='/robot_takes_turn/';
+                                }, 1000);
+                            </script>"""  # reloads page after 1 second, to call robot_takes_turn
+        else:
+            return ""
 
     def prep_links(self):
         self.board.reset_links()

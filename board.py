@@ -65,6 +65,7 @@ class Player(object):
         self._colors.append(self.color)  # put first color at end of class-wide list -> so next instance gets new color
         self.disabled = False
         self.active = False  # for determining style. Game will set Player's currentPlayer to True when it has turn
+        self.humanControlled = True  # for determining which Players are robots / AI controlled
 
     def move_to(self, x, y):
         """ reassigns coordinates. Because it does not reassign player to Tile, this funciton should only be called by
