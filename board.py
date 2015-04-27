@@ -197,15 +197,41 @@ class GameBoard(object):
         self.board[x, y].visible = False
 
     def get_tiles_around(self, x, y):
-        """ :return:numpy array of tiles surrounding given coordinate, including tile @ coordinate itself """
+        """ :return: 1-D numpy array of tiles surrounding given coordinate, including tile @ coordinate itself """
         xsmall = max(0, x - 1)
         xbig = min(self.w, x + 2)
         ysmall = max(0, y - 1)
         ybig = min(self.h, y + 2)
-        return self.board[xsmall:xbig, ysmall:ybig]
+        miniboard = self.board[xsmall:xbig, ysmall:ybig]
+        return miniboard.flatten() # 1-D array of tiles
+
+    def get_open_tiles_around(self, x, y):
+        """ return list of tiles around x, y that are open for movement. Do NOT use this for finding tiles to remove """
+        tiles = self.get_tiles_around(x, y)
+        openTiles = []
+        for tile in tiles:
+            if not tile.visible:
+                continue
+            if self.get_player_at(tile.x, tile.y):
+                continue
+            openTiles.append(tile)
+        return openTiles
+
+    def get_all_open_removable_tiles(self):
+        """ return list of all tiles available to remove on the board """
+        removable = []
+        for x, y, tile in self:
+            if not tile.visible:
+                continue
+            if self.get_player_at(x, y):
+                continue
+            if tile.solid:
+                continue
+            removable.append(tile)
+        return removable
 
     def is_valid_player_move(self, player, x, y):
-        """ :return: True if x, y coordinate is an open tile and next to the specified player, False otherwise. """
+        """ :return: True if x, y coordinate is an open tile, visible, and next to the specified player, False otherwise. """
         if not self[x, y].visible:
             return False
         if not self[x, y] in self.get_tiles_around(player.x, player.y):
@@ -237,10 +263,9 @@ class GameBoard(object):
         :param player: player instance to check
         :return: False if any tiles surrounding player is a valid move, True otherwise
         """
-        for row in self.get_tiles_around(player.x, player.y):
-            for tile in row:
-                if self.is_valid_player_move(player, tile.x, tile.y):
-                    return False
+        for tile in self.get_tiles_around(player.x, player.y):
+            if self.is_valid_player_move(player, tile.x, tile.y):
+                return False
         return True
 
 

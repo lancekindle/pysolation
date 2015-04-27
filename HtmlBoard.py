@@ -81,26 +81,22 @@ class HtmlGameBoard(GameBoard):
         return 'div.row { overflow: hidden; }'  # set each row on newline
 
     def reset_links(self):
-        for row in self.board:
-            for tile in row:
-                tile.reset_links()
+        for x, y, tile in self:
+            tile.reset_links()
 
     def set_tile_links_for_player_move(self):
         player = self.players[0]
         x, y = player.x, player.y
-        tileMatrix = self.get_tiles_around(x, y)
-        for row in tileMatrix:
-            for tile in row:
-                x2, y2 = tile.x, tile.y
-                if x == x2 and y == y2:  # skip tile under player
-                    continue
-                tile.set_link("/move_player_to/" + str(x2) + ',' + str(y2))
+        tiles = self.get_tiles_around(x, y)
+        for tile in tiles:
+            x2, y2 = tile.x, tile.y
+            if x == x2 and y == y2:  # skip tile under player
+                continue
+            tile.set_link("/move_player_to/" + str(x2) + ',' + str(y2))
 
     def set_tile_links_for_tile_remove(self):
-        for row in self.board:
-            for tile in row:
-                x, y = tile.x, tile.y
-                tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
+        for x, y, tile in self:
+            tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
 
 
 class HtmlGame(Game):
@@ -152,7 +148,7 @@ if __name__ == '__main__':
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
     game = HtmlGame()
-    game.setup(3, (4,4))
+    game.setup(2, (4,4), 1)
 
     @app.route("/")
     def root_url():
@@ -166,6 +162,11 @@ if __name__ == '__main__':
     @app.route("/remove_tile_at/<int:x>,<int:y>")
     def remove_tile_at(x, y):
         game.player_removes_tile(x, y)
+        return game.get_html()
+
+    @app.route("/robot_takes_turn/")
+    def robot_takes_turn():
+        game.robot_takes_turn()
         return game.get_html()
 
     app.run(debug=True)  # run with debug=True to allow interaction & feedback when
