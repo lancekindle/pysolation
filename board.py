@@ -2,10 +2,11 @@ import numpy as np
 import math
 
 
-class Tile:
+class Tile(object):
     """ A GameBoard is composed of rows and columns of Tiles. Each Tile has a specific x and y coordinate. It is up to
     the GameBoard setup to ensure a Tile has the correct x and y coordinates. When a Tile is NOT visible, it is
     considered removed from the Board, and can not be occupied by a Player.
+    Tiles are considered "Landable" if a player can move onto it. "Removable" indicates the tile can be removed
 
     :Attributes
         visible: if the Tile has not been removed from the GameBoard. True=> NOT removed. False=> REMOVED FROM BOARD
@@ -205,8 +206,10 @@ class GameBoard(object):
         miniboard = self.board[xsmall:xbig, ysmall:ybig]
         return miniboard.flatten() # 1-D array of tiles
 
-    def get_open_tiles_around(self, x, y):
-        """ return list of tiles around x, y that are open for movement. Do NOT use this for finding tiles to remove """
+    def get_landable_tiles_around(self, x, y):
+        """ return list of tiles around x, y that are open for movement. Do NOT use this for finding tiles to remove;
+        this list includes solid tiles, which are not removable
+        """
         tiles = self.get_tiles_around(x, y)
         openTiles = []
         for tile in tiles:
@@ -216,6 +219,21 @@ class GameBoard(object):
                 continue
             openTiles.append(tile)
         return openTiles
+
+    def get_removable_tiles_around(self, x, y):
+        """ return list of tiles neighboring the x, y coordinates that can be removed this turn """
+        tiles = self.get_tiles_around(x, y)
+        removable = []
+        for tile in tiles:
+            if not tile.visible:
+                continue
+            if tile.solid:
+                continue
+            x, y = tile.x, tile.y
+            if self.get_player_at(x, y):
+                continue
+            removable.append(tile)
+        return removable
 
     def get_all_open_removable_tiles(self):
         """ return list of all tiles available to remove on the board """

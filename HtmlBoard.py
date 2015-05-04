@@ -148,7 +148,7 @@ if __name__ == '__main__':
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
     game = HtmlGame()
-    game.setup(2, (4,4), 1)
+    game.setup(2, (7,7), 1)
 
     @app.route("/")
     def root_url():

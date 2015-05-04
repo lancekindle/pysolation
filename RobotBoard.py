@@ -15,14 +15,33 @@ class Robot(object):
         # if this move fails, you should call super(self) to ask the previous robot to try its move.
         # if all moves fail, eventually it'll reach this base Robot class, which moves to a random available tile
         x, y = self.player.x, self.player.y
-        tiles = self.board.get_open_tiles_around(x, y)
+        tiles = self.board.get_landable_tiles_around(x, y)
         target = random.choice(tiles)
         move_player_fxn(target.x, target.y)
 
     def take_remove_tile_turn(self, remove_tile_fxn):
-        """ remove a random available tile. """
-        tiles = self.board.get_all_open_removable_tiles()
-        target = random.choice(tiles)
+        """ remove a random tile around a random player (that isn't MY player). If that isn't possible, remove
+        a random tile that's not around my player. If that isn't possible, remove a random tile.
+        """
+        x, y = self.player.x, self.player.y
+        tilesAroundMe = set(self.board.get_removable_tiles_around(x, y))
+        tilesAroundOpponents = []
+        for player in self.board.players:
+            if not player == self.player:
+                x, y = player.x, player.y
+                nearbyTiles = self.board.get_removable_tiles_around(x, y)
+                tilesAroundOpponents.extend(nearbyTiles)
+        tilesAroundOpponents = set(tilesAroundOpponents)
+        safelyAroundOpponents = list(tilesAroundOpponents - tilesAroundMe)
+        removableTiles = set(self.board.get_all_open_removable_tiles())
+        safelyRemovable = list(removableTiles - tilesAroundMe)
+        target = random.choice(list(tilesAroundMe))  # worst-case scenario
+        if safelyAroundOpponents:
+            target = random.choice(safelyAroundOpponents)
+        elif tilesAroundOpponents:  # likely that I'm next to other player. I'll have to remove a tile available for both of us
+            target = random.choice(list(tilesAroundOpponents))
+        elif safelyRemovable:  # no open spots to remove around players can only happen if solid unremovable tiles exist
+            target = random.choice(safelyRemovable)
         remove_tile_fxn(target.x, target.y)
 
 
