@@ -53,8 +53,9 @@ class Player(object):
         x, y: x, y coordinate on the GameBoard
         color: the color of the player token.
         active: set to True when it is player's turn to move and remove tiles.
-        disabled: set to True when player has active turn and is unable to move. Usually this indicates Player will
-                remain inactive for the rest of the game.
+        disabled: permanently set to True when player has active turn and is unable to move. Usually this indicates
+            player will remain inactive for the rest of the game.
+        humanControlled: set to False if a robot is expected to control this Player Token's turn.
     """
     _colors = [("#FF0000", "Red"), ("#0000FF", "Blue"), ("#00FF00", "Green"),
                ("#FF00FF", "Purple"), ("#00FFFF", "Cyan"), ("#FFFF00", "Yellow")]
@@ -96,6 +97,31 @@ class GameBoard(object):
     board = None
     shape = (0, 0)
 
+    def setup(self, size=(9,9)):
+        """ populate board with Tiles, according to the size argument
+
+        :param size: size of board to construct in (x, y) format.
+        """
+        w, h = size
+        self.shape = (h, w)
+        self.w = w
+        self.h = h
+        rows = []
+        for x in range(w):
+            col = [self.Tile(x,y) for y in range(h)]
+            rows.append(col)
+        self.board = np.array(rows)
+        self.players = []
+
+    def add_players(self, qty):
+        """ add players to the board in quantity specified, spacing them equally apart """
+        startingPositions = self.get_starting_positions_for_players(qty)
+        self.players = [None]*qty
+        for i in range(qty):
+            p = self.Player(*startingPositions[i])
+            self.players[i] = p
+            self.move_player(p, p.x, p.y)
+
     def to_numpy_grid(self):
         ''' returns a numpy array representing the state of the tiles. 
         0 = invisible / removed, 1 = present, -1 = player occupying location
@@ -114,22 +140,6 @@ class GameBoard(object):
         for x in range(self.w):
             for y in range(self.h):
                 yield x, y, self.board[x, y]
-    
-    def setup(self, size=(9,9)):
-        """ populate board with Tiles, according to the size argument
-
-        :param size: size of board to construct in (x, y) format.
-        """
-        w, h = size
-        self.shape = (h, w)
-        self.w = w
-        self.h = h
-        rows = []
-        for x in range(w):
-            col = [self.Tile(x,y) for y in range(h)]
-            rows.append(col)
-        self.board = np.array(rows)
-        self.players = []
 
     def __getitem__(self, *args):
         return self.board.__getitem__(*args)
@@ -139,15 +149,6 @@ class GameBoard(object):
 
     def __str__(self):
         return str(self.board.transpose())  # transpose because numpy's representation will show x/y reversed
-
-    def add_players(self, qty):
-        """ add players to the board in quantity specified, spacing them equally apart """
-        startingPositions = self.get_starting_positions_for_players(qty)
-        self.players = [None]*qty
-        for i in range(qty):
-            p = self.Player(*startingPositions[i])
-            self.players[i] = p
-            self.move_player(p, p.x, p.y)
 
     def out_of_bounds(self, x, y):
         """ Return True if coordinates x, y are outside the boundaries of the GameBoard. Return False if a Tile is
@@ -287,6 +288,34 @@ class GameBoard(object):
         return True
 
 
+class BoardExporter:
+    """ allow exporting board to grid. Copies all relevant data from the board and then gives access to analyzing functions
+    """
+    def __init__(self, board):
+        self._board = board
+
+    def export_gap_points(self):
+        """ return list of coordinates for removed tiles """
+        gaps = []
+        for x, y, tile in self._board:
+            if not tile.visible:
+                gaps.append((x, y))
+        return gaps
+
+    def export_player_points(self):
+        """ return list of coordinates for players """
+        players = []
+        for x, y, tile in self._board:
+            if tile.player:
+                players.append(x, y)
+        return players
+
+    def export_board_size(self):
+        """ return width and height of board """
+        w, h = self._board.w, self._board.h
+        return w, h
+
+
 class Game(object):
     """ Game keeps track of the GameBoard and game-state. It is responsible for interfacing with the user/player,
     checking that any tile remove or player token move action is valid and then applying the action. It also keeps
@@ -294,7 +323,7 @@ class Game(object):
 
     Attributes:
         turnSuccessful: True or False if the last command (to move player or remove tile) was valid and executed
-        turnType: type of turn, REMOVE_TILE or MOVE_PLAYER.
+        turnType: type of turn, REMOVE_TILE or MOVE_PLAYER, or GAME_OVER
         board: reference to the gameboard.
     """
     REMOVE_TILE = 5
@@ -307,6 +336,7 @@ class Game(object):
     turnType = None
 
     def setup(self, numPlayers=2, shape=(9,9)):
+        """ set up board shape and populate players, set active player. After this, game will be ready to play """
         self.board = self.GameBoard()
         self.board.Player = self.Player  # set up proper inheritance
         self.board.Tile = self.Tile
@@ -348,8 +378,8 @@ class Game(object):
             self.setup_next_active_player()
 
     def end_game(self):
+        """ perform end-game functions that ensure the game grinds to a halt """
         self.turnType = self.GAME_OVER
-        pass
 
     def is_game_over(self):
         """ return True if all players--excluding active player--are either trapped or inactive (previously trapped) """

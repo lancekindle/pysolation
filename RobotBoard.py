@@ -3,7 +3,9 @@ import random
 
 class Robot(object):
     """ controller for any non-humanControlled playing tokens. Using a board-representation, it can decide where
-    to move, and what tiles to remove. Calls to the Robot must be made for each turn: moving or removing.
+    to move, and what tiles to remove. Calls to the Robot must be made for each turn: moving or removing. Future
+    inheriting classes, should they fail in taking a turn, should call super() on their take_move_player_turn and
+    take_remove_tile_turn, since these base functions will take any possible turn.
     """
 
     def __init__(self, game, board, player):
@@ -12,8 +14,7 @@ class Robot(object):
         self.player = player
     
     def take_move_player_turn(self, move_player_fxn):
-        # if this move fails, you should call super(self) to ask the previous robot to try its move.
-        # if all moves fail, eventually it'll reach this base Robot class, which moves to a random available tile
+        """ move player token to a random nearby tile """
         x, y = self.player.x, self.player.y
         tiles = self.board.get_landable_tiles_around(x, y)
         target = random.choice(tiles)
@@ -23,8 +24,6 @@ class Robot(object):
         """ remove a random tile around a random player (that isn't MY player). If that isn't possible, remove
         a random tile that's not around my player. If that isn't possible, remove a random tile.
         """
-        x, y = self.player.x, self.player.y
-        tilesAroundMe = set(self.board.get_removable_tiles_around(x, y))
         tilesAroundOpponents = []
         for player in self.board.players:
             if not player == self.player:
@@ -32,10 +31,13 @@ class Robot(object):
                 nearbyTiles = self.board.get_removable_tiles_around(x, y)
                 tilesAroundOpponents.extend(nearbyTiles)
         tilesAroundOpponents = set(tilesAroundOpponents)
-        safelyAroundOpponents = list(tilesAroundOpponents - tilesAroundMe)
-        removableTiles = set(self.board.get_all_open_removable_tiles())
-        safelyRemovable = list(removableTiles - tilesAroundMe)
-        target = random.choice(list(tilesAroundMe))  # worst-case scenario
+        x, y = self.player.x, self.player.y
+        tilesAroundMe = set(self.board.get_removable_tiles_around(x, y))  # tiles around controlled player (me)
+        safelyAroundOpponents = list(tilesAroundOpponents - tilesAroundMe)  # tiles around opponents but not around me
+        removableTiles = set(self.board.get_all_open_removable_tiles())  # all removable tiles
+        safelyRemovable = list(removableTiles - tilesAroundMe)  # all removable tiles except those around me
+        target = random.choice(list(removableTiles))  # worst-case scenario. If other options fail, target tile will be, by logic,
+                # those around the player token itself
         if safelyAroundOpponents:
             target = random.choice(safelyAroundOpponents)
         elif tilesAroundOpponents:  # likely that I'm next to other player. I'll have to remove a tile available for both of us
@@ -46,12 +48,13 @@ class Robot(object):
 
 
 class RobotGameBoard(board.GameBoard):
+    """ allow defining robots in board """
 
     def set_num_robot_players(self, numRobots):
         if numRobots < 1:
             return
         numPlayers = len(self.players)
-        n = numPlayers / numRobots  # n is a ratio
+        n = int(numPlayers / numRobots)  # n is a ratio
         for player in self.players[::n]:  # every nth  player is a robot, so we sample every nth player
             if numRobots:  # stop once numRobots has been reached
                 player.humanControlled = False
@@ -59,8 +62,7 @@ class RobotGameBoard(board.GameBoard):
 
 
 class RobotGame(board.Game):
-    # all game needs to do is trigger a POST request after ~ 1 second to request url: /robot_takes_turn/
-    # ... on the html page. if the active player is a robot
+    """ game handles adding robots to gameplay """
 
     def setup(self, numPlayers=2, shape=(9,9), numRobots=0):
         self.board = self.GameBoard()
@@ -74,6 +76,7 @@ class RobotGame(board.Game):
         self.get_active_player().active = True
 
     def setup_robots(self, numRobots):
+        """ set up robots to handle appropriate number player token """
         self.board.set_num_robot_players(numRobots)
         for player in self.board.players:
             if not player.humanControlled:
@@ -98,11 +101,13 @@ class RobotGame(board.Game):
             raise  # problem with our logic
     
     def player_removes_tile(self, x, y):
+        """ if active player is human, carry out function. Otherwise exit """
         activePlayer = self.get_active_player()
         if activePlayer.humanControlled:
             super(RobotGame, self).player_removes_tile(x, y)
 
     def player_moves_player(self, x, y):
+        """ if active player is human, carry out function. Otherwise exit """
         activePlayer = self.get_active_player()
         if activePlayer.humanControlled:
             super(RobotGame, self).player_moves_player(x, y)

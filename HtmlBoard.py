@@ -1,12 +1,15 @@
-##from board import Tile, Player, GameBoard, Game
 from board import Tile, Player
-from RobotBoard import RobotGame as Game
-from RobotBoard import RobotGameBoard as GameBoard
+from RobotBoard import RobotGame, RobotGameBoard
 
 class HtmlTile(Tile):
+    """ Provides export-to-html functionality on top of the traditional Tile class. For each tile, you'll need to save
+    The Tile's html. Only once do you need to get the tile's style. If you want to include a link on the Tile, set
+    tile's link attribute to desired link, and then call get_html
+    """
     link = None
 
     def get_html(self):
+        """ export tile state to html """
         if self.visible:
             visibility = 'visible'
         else:
@@ -22,6 +25,7 @@ class HtmlTile(Tile):
 
     @classmethod
     def get_style(cls, size='50px'):
+        """ return tile style, with an optional size parameter """
         style = 'div.tile { position: relative; width: ' + size + '; height: ' + size + ';'
         style += 'float: left; margin: 2px; }'
         style += 'div.tile.visible { background-color: #FF9912 }'
@@ -30,15 +34,19 @@ class HtmlTile(Tile):
         return style
 
     def reset_links(self):
+        """ reset link on tile. Useful when changing game turns """
         self.link = None
 
     def set_link(self, link):
+        """ set tile link. After setting link, get_html() call will return html with link included """
         self.link = link
     
 
 class HtmlPlayer(Player):
+    """ Provides access to html for player token """
 
     def get_html(self):# build html representing player
+        """ return player state in html format """
         activity = ''
         if self.disabled:
             activity = 'disabled'
@@ -49,13 +57,15 @@ class HtmlPlayer(Player):
 
     @classmethod
     def get_style(cls, size='50px'):
+        """ return player token style """
         style =  'div.player { width: ' + size + '; height: ' + size + '; border-radius: 50%; }'
         style += 'div.player.active { border: 2px solid white; box-sizing: border-box; }'
         style += 'div.player.disabled { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.5) 5px, rgba(0, 0, 0, 0.5) 10px)}'
         return style
 
 
-class HtmlGameBoard(GameBoard):
+class HtmlGameBoard(RobotGameBoard):
+    """ provides html-export functions for controlling gameboard and getting visual feel """
     Player = HtmlPlayer
     Tile = HtmlTile
 
@@ -64,6 +74,7 @@ class HtmlGameBoard(GameBoard):
         self.footer = ''
 
     def get_html(self):
+        """ return html representing board """
         html = ''
         for row in self.board:
             html += '<div class="row">'
@@ -74,18 +85,21 @@ class HtmlGameBoard(GameBoard):
         return html
 
     def set_footer(self, footer):
+        """ set text at botom of html board. Typically used for announcing end-of-game message """
         self.footer = footer
 
     @classmethod
     def get_style(cls, size='50px'):
+        """ return board style """
         return 'div.row { overflow: hidden; }'  # set each row on newline
 
     def reset_links(self):
+        """ reset links in all tiles """
         for x, y, tile in self:
             tile.reset_links()
 
-    def set_tile_links_for_player_move(self):
-        player = self.players[0]
+    def set_tile_links_for_player_move(self, player):
+        """ set tile links around player for moving the player there """
         x, y = player.x, player.y
         tiles = self.get_tiles_around(x, y)
         for tile in tiles:
@@ -95,16 +109,21 @@ class HtmlGameBoard(GameBoard):
             tile.set_link("/move_player_to/" + str(x2) + ',' + str(y2))
 
     def set_tile_links_for_tile_remove(self):
+        """ set tile links on all removable tiles """
         for x, y, tile in self:
             tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
 
 
-class HtmlGame(Game):
+class HtmlGame(RobotGame):
+    """ provide html-export options to Game class """
     GameBoard = HtmlGameBoard
     Player = HtmlPlayer  # "magically" this now will spawn an HtmlPlayer, not just a normal player
     Tile = HtmlTile
 
     def get_html(self):
+        """ get html of game. This will force links in board and tiles to update, and then get all html and styles for board
+        and tiles and players
+        """
         self.prep_links()
         html = self.board.get_html()
         style = self.get_style('50px')  # even though it's a class method, we called using self, meaning
@@ -114,12 +133,14 @@ class HtmlGame(Game):
     
     @classmethod
     def get_style(cls, size='50px'):
+        """ return style of game, which gathers styles from all elements of the game including board, tile, and player """
         style = cls.GameBoard.get_style(size)
         style += cls.Tile.get_style(size)
         style += cls.Player.get_style(size)
         return style
 
     def get_scripts(self):
+        """ return scripts to execute after loading html """ 
         if not self.get_active_player().humanControlled:
             return """<script>
                                 setTimeout(function(){
@@ -130,9 +151,11 @@ class HtmlGame(Game):
             return ""
 
     def prep_links(self):
+        """ erase links on board and prepare new links corresponding to game state (and what turn it is) """
         self.board.reset_links()
         if self.turnType == self.MOVE_PLAYER:
-            self.board.set_tile_links_for_player_move()
+            player = self.get_active_player()
+            self.board.set_tile_links_for_player_move(player)
         elif self.turnType == self.REMOVE_TILE:
             self.board.set_tile_links_for_tile_remove()
         elif self.turnType == self.GAME_OVER:
