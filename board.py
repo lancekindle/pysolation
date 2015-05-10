@@ -130,9 +130,9 @@ class GameBoard(object):
         for x in range(self.w):
             for y in range(self.h):
                 if self.board[x, y].visible:
-                    grid[y, x] += 1
+                    grid[x, y] += 1
                 if self.board[x, y].player:
-                    grid[y, x] -= 2
+                    grid[x, y] -= 2
         return grid
 
     def __iter__(self):
