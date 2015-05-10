@@ -126,10 +126,9 @@ class GameBoard(object):
         ''' returns a numpy array representing the state of the tiles. 
         0 = invisible / removed, 1 = present, -1 = player occupying location
         '''
-        h, w = self.shape
-        grid = np.zeros((h, w))
-        for x in range(w):
-            for y in range(h):
+        grid = np.zeros((self.w, self.h))
+        for x in range(self.w):
+            for y in range(self.h):
                 if self.board[x, y].visible:
                     grid[y, x] += 1
                 if self.board[x, y].player:
