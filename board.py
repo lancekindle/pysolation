@@ -122,17 +122,20 @@ class GameBoard(object):
             self.players[i] = p
             self.move_player(p, p.x, p.y)
 
-    def to_numpy_grid(self):
+    def to_numpy_grid(self, **kwargs):
         ''' returns a numpy array representing the state of the tiles. 
         0 = invisible / removed, 1 = present, -1 = player occupying location
         '''
-        grid = np.zeros((self.w, self.h))
+        playerVal = float(kwargs.get('players', -1))
+        tileVal = float(kwargs.get('tiles', 1))
+        gapVal = float(kwargs.get('gaps', 0))
+        grid = np.zeros((self.w, self.h)) + gapVal
         for x in range(self.w):
             for y in range(self.h):
                 if self.board[x, y].visible:
-                    grid[x, y] += 1
+                    grid[x, y] = tileVal
                 if self.board[x, y].player:
-                    grid[x, y] -= 2
+                    grid[x, y] = playerVal
         return grid
 
     def __iter__(self):
