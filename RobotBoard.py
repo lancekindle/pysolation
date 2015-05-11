@@ -1,5 +1,6 @@
 import board
 import random
+import BoardAnalyzer
 
 class Robot(object):
     """ controller for any non-humanControlled playing tokens. Using a board-representation, it can decide where
@@ -46,6 +47,16 @@ class Robot(object):
             target = random.choice(safelyRemovable)
         remove_tile_fxn(target.x, target.y)
 
+class RunnerBot(Robot):
+    """ RunnerBot moves toward open, escapable tiles """
+    
+    def take_move_player_turn(self, move_player_fxn):
+        x, y = self.player.x, self.player.y
+        grid = self.board.to_numpy_grid(players=0, gaps=0, tiles=1)  # set all tiles to 1, and players and gaps to 0
+        sweetspotter = BoardAnalyzer.SweetSpotGrid(grid)
+        x, y = sweetspotter.get_next_move_toward_sweet_spot(grid, x, y)
+        move_player_fxn(x, y)
+
 
 class RobotGameBoard(board.GameBoard):
     """ allow defining robots in board """
@@ -80,7 +91,7 @@ class RobotGame(board.Game):
         self.board.set_num_robot_players(numRobots)
         for player in self.board.players:
             if not player.humanControlled:
-                robot = Robot(self, self.board, player)
+                robot = RunnerBot(self, self.board, player)
                 self.robots[player] = robot
 
     def robot_takes_turn(self):
