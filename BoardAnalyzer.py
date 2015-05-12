@@ -6,9 +6,13 @@ from scipy import signal
 
 class BaseGrid(object):
     GAP = 0
+    PLAYER = 0
     TILE = 1
 
-    def __init__(self, grid):
+    def __init__(self, grid_gen_fxn):
+        grid = grid_gen_fxn(players=self.PLAYER, gaps=self.GAP, tiles=self.TILE)
+        if grid.dtype == np.bool8:
+            raise ValueError('numpy grid of type' + grid.dtype + '; Require a type float')
         self.originalGrid = grid
 
     def is_in_bounds(self, grid, x, y):
@@ -105,8 +109,6 @@ class AccessibleGrid(MoveGrid):
     def get_grid_accessible_from_point(self, grid, x, y):
         expanded = self.expand_from_points(grid, [(x, y)])
         accessible = expanded > 1  # wave starts at 1, so > 1 will indicate any spot accessible from x, y, but not x, y itself
-##        print('accessible')
-##        print(accessible)
         return grid * accessible
 
 
@@ -121,11 +123,9 @@ class SweetSpotGrid(AccessibleGrid):
         accessible = self.get_grid_accessible_from_point(grid, x, y)
         firstPass = self.neighbor_convolve(accessible)
         passOneWithGaps = self.set_gaps(firstPass)
-##        print(passOneWithGaps)
         secondPass = self.neighbor_convolve(passOneWithGaps)
         passTwoWithGaps = self.set_gaps(secondPass)
         passTwoWithGaps[x, y] = 0  # set to zero so that the best spot does NOT equal starting point (x, y).
-##        print(passTwoWithGaps)
         bestSpots = (passTwoWithGaps == passTwoWithGaps.max())
         arrayCoords = np.transpose(bestSpots.nonzero())
         sweetSpots = [(x, y) for x, y in arrayCoords]  # convert to usable list of tuple coordinates
@@ -134,17 +134,10 @@ class SweetSpotGrid(AccessibleGrid):
     def get_next_move_toward_sweet_spot(self, grid, x, y):
         """ find neighboring tile to x, y that moves in direction towards sweet spot """
         sweetSpots = self.get_sweet_spots_from_point(grid, x, y)
-##        print(sweetSpots)
         moveGrid = self.expand_from_points(grid, sweetSpots)
-        print(moveGrid)
         neighbors = self.get_tile_neighbors_around_point(moveGrid, x, y, True)
-##        print(neighbors)
         vMin, x, y = min(neighbors)
-##        print(vMin)
-##        print('vMin', vMin)
-##        print(neighbors)
         bestMoves = [(x, y) for v, x, y in neighbors if v == vMin]
-        print(bestMoves)
         x, y = random.choice(bestMoves)
         return x, y
 
@@ -162,7 +155,13 @@ if __name__ == '__main__':
     g[1, 0] = 0
     g[1, 5] = 0
     print(g)
-    ssg = SweetSpotGrid(g)
+    def gen(**kwargs):
+        return g
+    ssg = SweetSpotGrid(gen)
+    swtspts = ssg.get_sweet_spots_from_point(g, x1, y1)
+    print(swtspts)
+    mg = ssg.expand_from_points(g, swtspts)
+    print(mg)
     x, y = ssg.get_next_move_toward_sweet_spot(g, x1, y1)
     print(x, y)
     
