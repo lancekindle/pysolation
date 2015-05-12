@@ -52,7 +52,7 @@ class RunnerBot(Robot):
     
     def take_move_player_turn(self, move_player_fxn):
         x, y = self.player.x, self.player.y
-        grid = self.board.to_numpy_grid(players=0, gaps=0, tiles=1)  # set all tiles to 1, and players and gaps to 0
+        grid = self.board.to_number_grid(players=0, gaps=0, tiles=1)  # set all tiles to 1, and players and gaps to 0
         sweetspotter = BoardAnalyzer.SweetSpotGrid(grid)
         x, y = sweetspotter.get_next_move_toward_sweet_spot(grid, x, y)
         move_player_fxn(x, y)
