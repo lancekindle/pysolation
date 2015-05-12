@@ -2,15 +2,15 @@ import board
 import random
 import BoardAnalyzer
 
-class Robot(object):
+class RandomBot(object):
     """ controller for any non-humanControlled playing tokens. Using a board-representation, it can decide where
-    to move, and what tiles to remove. Calls to the Robot must be made for each turn: moving or removing. Future
+    to move, and what tiles to remove. Calls to the RandomBot must be made for each moving-or-removing turn. Future
     inheriting classes, should they fail in taking a turn, should call super() on their take_move_player_turn and
     take_remove_tile_turn, since these base functions will take any possible turn.
     """
 
     def __init__(self, game, board, player):
-        self.game = game  # keep reference of game for tracking success of move
+        self.game = game  # keep reference of game for tracking success of move (game.turnSuccessfull)
         self.board = board  # keep reference to the board and player for calculations
         self.player = player
     
@@ -21,6 +21,14 @@ class Robot(object):
         target = random.choice(tiles)
         move_player_fxn(target.x, target.y)
 
+    def take_remove_tile_turn(self, remove_tile_fxn):
+        """ remove a random tile from the board """
+        removableTiles = list(self.board.get_all_open_removable_tiles())  # all removable tiles
+        target = random.choice(removableTiles)
+        remove_tile_fxn(target.x, target.y)
+
+class TileRemoveBot(RandomBot):
+    
     def take_remove_tile_turn(self, remove_tile_fxn):
         """ remove a random tile around a random player (that isn't MY player). If that isn't possible, remove
         a random tile that's not around my player. If that isn't possible, remove a random tile.
@@ -37,24 +45,34 @@ class Robot(object):
         safelyAroundOpponents = list(tilesAroundOpponents - tilesAroundMe)  # tiles around opponents but not around me
         removableTiles = set(self.board.get_all_open_removable_tiles())  # all removable tiles
         safelyRemovable = list(removableTiles - tilesAroundMe)  # all removable tiles except those around me
-        target = random.choice(list(removableTiles))  # worst-case scenario. If other options fail, target tile will be, by logic,
-                # those around the player token itself
-        if safelyAroundOpponents:
-            target = random.choice(safelyAroundOpponents)
-        elif tilesAroundOpponents:  # likely that I'm next to other player. I'll have to remove a tile available for both of us
-            target = random.choice(list(tilesAroundOpponents))
-        elif safelyRemovable:  # no open spots to remove around players can only happen if solid unremovable tiles exist
-            target = random.choice(safelyRemovable)
+        try:
+            if safelyAroundOpponents:
+                target = random.choice(safelyAroundOpponents)
+            elif tilesAroundOpponents:  # likely that I'm next to other player. I'll have to remove a tile available for both of us
+                target = random.choice(list(tilesAroundOpponents))
+            else:  # no open spots to remove around players can only happen if solid unremovable tiles exist
+                target = random.choice(safelyRemovable)
+        except IndexError:  # this error will catch if last else statement possibly triggered it
+            super(TileRemoveBot, self).take_remove_tile_turn(remove_tile_fxn)
+            return
         remove_tile_fxn(target.x, target.y)
 
-class RunnerBot(Robot):
-    """ RunnerBot moves toward open, escapable tiles """
+class MoveBot(TileRemoveBot):
+    """ MoveBot moves toward open, escapable tiles. It calculates the best location(s) on a board by looking at the
+    # of open neighboring tiles for all tiles -- twice. It chooses to move towards a tile that has the most desireable
+    neighboring tiles
+    """
     
     def take_move_player_turn(self, move_player_fxn):
         x, y = self.player.x, self.player.y
-        grid = self.board.to_number_grid(players=0, gaps=0, tiles=1)  # set all tiles to 1, and players and gaps to 0
-        sweetspotter = BoardAnalyzer.SweetSpotGrid(grid)
-        x, y = sweetspotter.get_next_move_toward_sweet_spot(grid, x, y)
+        grid_gen_fxn = self.board.to_number_grid
+        sweetspotter = BoardAnalyzer.SweetSpotGrid(grid_gen_fxn)
+        grid = sweetspotter.originalGrid
+        try:
+            x, y = sweetspotter.get_next_move_toward_sweet_spot(grid, x, y)
+        except IndexError:
+            super(MoveBot, self).take_move_player_turn(move_player_fxn)
+            return
         move_player_fxn(x, y)
 
 
@@ -91,7 +109,7 @@ class RobotGame(board.Game):
         self.board.set_num_robot_players(numRobots)
         for player in self.board.players:
             if not player.humanControlled:
-                robot = RunnerBot(self, self.board, player)
+                robot = MoveBot(self, self.board, player)
                 self.robots[player] = robot
 
     def robot_takes_turn(self):
