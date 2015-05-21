@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 
-class Tile(object):
+class Tile:
     """ A GameBoard is composed of rows and columns of Tiles. Each Tile has a specific x and y coordinate. It is up to
     the GameBoard setup to ensure a Tile has the correct x and y coordinates. When a Tile is NOT visible, it is
     considered removed from the Board, and can not be occupied by a Player.
@@ -39,6 +39,10 @@ class Tile(object):
             return True
         return False
 
+    def __hash__(self):
+        """ must define a hash method if you override __eq__ in python 3. Hashing allows sets to hold tiles """
+        return id(self)
+
     def set_visible(self, tf):
         """
         :param tf: boolean True or False to set visible attribute.
@@ -46,7 +50,7 @@ class Tile(object):
         self.visible = tf
 
 
-class Player(object):
+class Player:
     """ Player is moved around the board, and is trapped once it cannot move on it's own turn.
 
     Attributes:
@@ -77,7 +81,7 @@ class Player(object):
         self.y = y
 
 
-class GameBoard(object):
+class GameBoard:
     """ GameBoard that holds the tiles and players in one place. Allow manipulation of Players and Tiles, and provide
     functions for gathering data about specific states of the GameBoard. After initilization, requires setup() function
     call in order to populate the GameBoard, then a call to add_players(x) to add x players to game
@@ -318,7 +322,7 @@ class BoardExporter:
         return w, h
 
 
-class Game(object):
+class Game:
     """ Game keeps track of the GameBoard and game-state. It is responsible for interfacing with the user/player,
     checking that any tile remove or player token move action is valid and then applying the action. It also keeps
     track of whose turn it is, and what type of turn it is (removing tile or moving player).
