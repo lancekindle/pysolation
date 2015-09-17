@@ -1,4 +1,4 @@
-from board import Tile, Player
+from Game import Tile, Player
 from RobotBoard import RobotGame, RobotGameBoard
 
 class HtmlTile(Tile):

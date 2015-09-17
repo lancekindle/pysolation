@@ -1,4 +1,4 @@
-import board
+import Game
 import random
 import BoardAnalyzer
 
@@ -76,7 +76,7 @@ class MoveBot(TileRemoveBot):
         move_player_fxn(x, y)
 
 
-class RobotGameBoard(board.GameBoard):
+class RobotGameBoard(Game.GameBoard):
     """ allow defining robots in board """
 
     def set_num_robot_players(self, numRobots):
@@ -90,7 +90,7 @@ class RobotGameBoard(board.GameBoard):
                 numRobots -= 1
 
 
-class RobotGame(board.Game):
+class RobotGame(Game.Game):
     """ game handles adding robots to gameplay """
 
     def setup(self, numPlayers=2, shape=(9,9), numRobots=0):
