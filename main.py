@@ -1,11 +1,16 @@
 from HtmlBoard import HtmlGame
+# run this module to play the browsers-supported game
 
 if __name__ == '__main__':
     from flask import Flask
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
     game = HtmlGame()
-    game.setup(2, (7,6), 1)
+    number_of_bots = 1
+    number_of_humans = 2
+    board_dimensions = (7, 6)
+    
+    game.setup(number_of_humans, board_dimensions, number_of_bots)
 
     @app.route("/")
     def root_url():
