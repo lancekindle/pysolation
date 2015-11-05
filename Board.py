@@ -3,7 +3,38 @@ import math
 
 
 #=================================================================
-class _BoardSetup:
+class _GamePieceAccess:
+
+    def __iter__(self):
+        for x in range(self.w):
+            for y in range(self.h):
+                yield x, y, self.board[x, y]
+
+    def __getitem__(self, *args):
+        return self.board.__getitem__(*args)
+
+    def __setitem__(self, *args):
+        self.board.__setitem__(*args)
+
+    def get_player_at(self, x, y):
+        """ return player attribute of tile at specified x, y coordinates """
+        return self[x, y].player
+
+    def remove_at(self, x, y):
+        """ "Remove" Tile at specified coordinate. This will set the visible attribute to False """
+        self.board[x, y].visible = False
+
+    def move_player(self, player, x, y):
+        """ move player from occupied tile to tile @ x, y coordinates. """
+        tile = self[player.x, player.y]
+        tile.player = None
+        player.move_to(x, y)
+        target = self[x, y]
+        target.player = player
+
+
+#=================================================================
+class _BoardSetup(_GamePieceAccess):
     Player = None
     Tile = None
     board = None
@@ -64,38 +95,7 @@ class _BoardSetup:
         return positions
 
 
-#=================================================================
-class _GamePieceAccess(_BoardSetup):
-
-    def __iter__(self):
-        for x in range(self.w):
-            for y in range(self.h):
-                yield x, y, self.board[x, y]
-
-    def __getitem__(self, *args):
-        return self.board.__getitem__(*args)
-
-    def __setitem__(self, *args):
-        self.board.__setitem__(*args)
-
-    def get_player_at(self, x, y):
-        """ return player attribute of tile at specified x, y coordinates """
-        return self[x, y].player
-
-    def remove_at(self, x, y):
-        """ "Remove" Tile at specified coordinate. This will set the visible attribute to False """
-        self.board[x, y].visible = False
-
-    def move_player(self, player, x, y):
-        """ move player from occupied tile to tile @ x, y coordinates. """
-        tile = self[player.x, player.y]
-        tile.player = None
-        player.move_to(x, y)
-        target = self[x, y]
-        target.player = player
-
-
-class _TileFinder(_GamePieceAccess):
+class _TileFinder(_BoardSetup):
     
     def get_tiles_around(self, x, y):
         """ :return: 1-D numpy array of tiles surrounding given coordinate, including tile @ coordinate itself """
