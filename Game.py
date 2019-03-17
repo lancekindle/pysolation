@@ -12,6 +12,7 @@ class Tile:
     :Attributes
         visible: if the Tile has not been removed from the GameBoard. True=> NOT removed. False=> REMOVED FROM BOARD
         solid: specifies if Tile is removable. If True, Tile cannot be removed
+        ID: x,y coordinates (in string form) of tile, used for finding and identifying tile in html elements
         player: reference to player token. player = None if Tile is unoccupied. When checking if a player occupies a
             particular Tile, use player == tile, or player in board[i, j] also works
     """
@@ -21,6 +22,7 @@ class Tile:
         self.y = y
         self.visible = True
         self.solid = False
+        self.ID = "{x},{y}".format(x=x, y=y)
         self.player = None
 
     def __repr__(self):
@@ -64,10 +66,14 @@ class Player:
     """
     _colors = [("#FF0000", "Red"), ("#0000FF", "Blue"), ("#00FF00", "Green"),
                ("#FF00FF", "Purple"), ("#00FFFF", "Cyan"), ("#FFFF00", "Yellow")]
+    _id = [1]
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
+        ID = self._id.pop()
+        self.id = 'player_' + str(ID)
+        self._id.append(ID + 1)  # set ID and increment ID#
         self.color, self.colorName = self._colors.pop(0)
         self._colors.append(self.color)  # put first color at end of class-wide list -> so next instance gets new color
         self.disabled = False
@@ -127,6 +133,7 @@ class Game:
     Player = Player
     Tile = Tile
     turnSuccessful = False  # a status indicator only.
+    lastTurn = tuple()  # holds (last_used_method, (*args)). Can be used to replicate last move
     turnType = None
 
     def setup(self, numPlayers=2, shape=(9,9)):
@@ -185,9 +192,10 @@ class Game:
     def player_removes_tile(self, x, y):
         """ take turn on game by removing tile. Checks that turn is valid, and afterwards rolls over to next turn """
         if self.turnType == self.REMOVE_TILE and self.board.is_valid_tile_remove(x, y):
-            self.board.remove_at(x, y)
+            tile = self.board.remove_at(x, y)
             self.setup_next_turn()
             self.turnSuccessful = True
+            self.lastTurn = (self.board.remove_at, (tile, x, y))
         else:
             self.turnSuccessful = False
 
@@ -198,6 +206,7 @@ class Game:
             self.board.move_player(player, x, y)
             self.setup_next_turn()
             self.turnSuccessful = True
+            self.lastTurn = (self.board.move_player, (player, x, y))
         else:
             self.turnSuccessful = False
 

@@ -14,10 +14,11 @@ class HtmlTile(Tile):
             visibility = 'visible'
         else:
             visibility = 'hidden'
-        html = '<div class="tile ' + visibility  + '">'  # build html representing tile
+        html = '<div class="tile ' + visibility  + '" id="' + self.ID + '">'  # build html representing tile
         if self.visible and not self.player:  # do not allow clicking on tile if it's removed or player occupied
             if self.link:
-                html += '<a href="' + self.link + '" class="tile-link"></a>'
+                html = html.replace('class="tile ', 'class="tile link ')  # mouse pointer changes with "link" class
+                html += '<a href="' + self.link + '" class="tile-link "></a>'
         if self.player:
             html += self.player.get_html()
         html += '</div>'
@@ -30,6 +31,7 @@ class HtmlTile(Tile):
         style += 'float: left; margin: 2px; }'
         style += 'div.tile.visible { background-color: #FF9912 }'
         style += 'div.tile.hidden { background-color: transparent; }'
+        style += 'div.tile.link { cursor: pointer; }'
         style += 'a.tile-link { display: block; width: ' + size + '; height: ' + size + '; }'
         return style
 
@@ -40,7 +42,7 @@ class HtmlTile(Tile):
     def set_link(self, link):
         """ set tile link. After setting link, get_html() call will return html with link included """
         self.link = link
-    
+
 
 class HtmlPlayer(Player):
     """ Provides access to html for player token """
@@ -52,7 +54,7 @@ class HtmlPlayer(Player):
             activity = 'disabled'
         elif self.active:
             activity = 'active'
-        html = '<div class="player ' + activity + '" style="background-color:' + self.color + '"></div>'
+        html = '<div id="' + self.id  + '" class="player ' + activity + '" style="position:absolute; background-color:' + self.color + '"></div>'
         return html
 
     @classmethod
@@ -75,14 +77,14 @@ class HtmlGameBoard(RobotGameBoard):
 
     def get_html(self):
         """ return html representing board """
-        html = ''
+        html = '<div class="board">'
         for row in self.board:
             html += '<div class="row">'
             for tile in row:
                 html += tile.get_html()
             html += '</div>'  # or some other visual break between rows
         html += self.footer  # add extras
-        return html
+        return html + '</div>'
 
     def set_footer(self, footer):
         """ set text at botom of html board. Typically used for announcing end-of-game message """
@@ -102,16 +104,25 @@ class HtmlGameBoard(RobotGameBoard):
         """ set tile links around player for moving the player there """
         x, y = player.x, player.y
         tiles = self.get_tiles_around(x, y)
+        linked = []
         for tile in tiles:
             x2, y2 = tile.x, tile.y
             if x == x2 and y == y2:  # skip tile under player
                 continue
             tile.set_link("/move_player_to/" + str(x2) + ',' + str(y2))
+            linked.append(tile.ID)
+        return linked  # return ID-list of active "clickable" tiles
 
     def set_tile_links_for_tile_remove(self):
         """ set tile links on all removable tiles """
+        player_coordinates = set((player.x, player.y) for player in self.players)
+        linked = []
         for x, y, tile in self:
+            if (x, y) in player_coordinates:
+                continue  # cannot remove tile from underneath a player
             tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
+            linked.append(tile.ID)
+        return linked  # return ID-list of active "clickable, removable" tiles
 
 
 class HtmlGame(RobotGame):
@@ -119,6 +130,7 @@ class HtmlGame(RobotGame):
     GameBoard = HtmlGameBoard
     Player = HtmlPlayer  # "magically" this now will spawn an HtmlPlayer, not just a normal player
     Tile = HtmlTile
+    linked_tiles = []  # holds list of all actively-linked tiles' IDs in "x,y" string format
 
     def get_html(self):
         """ get html of game. This will force links in board and tiles to update, and then get all html and styles for board
@@ -143,10 +155,11 @@ class HtmlGame(RobotGame):
         """ return scripts to execute after loading html """ 
         if not self.get_active_player().humanControlled:
             return """<script>
-                                setTimeout(function(){
-                                   window.location='/robot_takes_turn/';
-                                }, 1000);
-                            </script>"""  # reloads page after 1 second, to call robot_takes_turn
+                        var BotPlayTimeout;
+                        BotPlayTimeout = setTimeout(function(){
+                            window.location='/robot_takes_turn/';
+                        }, 1000);
+                    </script>"""  # reloads page after 1 second, to call robot_takes_turn
         else:
             return ""
 
@@ -155,9 +168,9 @@ class HtmlGame(RobotGame):
         self.board.reset_links()
         if self.turnType == self.MOVE_PLAYER:
             player = self.get_active_player()
-            self.board.set_tile_links_for_player_move(player)
+            self.linked_tiles = self.board.set_tile_links_for_player_move(player)
         elif self.turnType == self.REMOVE_TILE:
-            self.board.set_tile_links_for_tile_remove()
+            self.linked_tiles = self.board.set_tile_links_for_tile_remove()
         elif self.turnType == self.GAME_OVER:
             self.board.reset_links()
             winner = self.get_active_player()

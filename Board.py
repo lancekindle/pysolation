@@ -23,6 +23,7 @@ class _GamePieceAccess:
     def remove_at(self, x, y):
         """ "Remove" Tile at specified coordinate. This will set the visible attribute to False """
         self.board[x, y].visible = False
+        return self.board[x, y]
 
     def move_player(self, player, x, y):
         """ move player from occupied tile to tile @ x, y coordinates. """
