@@ -1,12 +1,12 @@
-from HtmlBoard import HtmlGame
+from JSBoard import JSGame
 # run this module to play the browsers-supported game
 
 if __name__ == '__main__':
-    from flask import Flask
+    from flask import Flask, jsonify
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
-    game = HtmlGame()
-    number_of_bots = 1
+    game = JSGame()
+    number_of_bots = 0
     number_of_humans = 2
     board_dimensions = (7, 6)
     
@@ -30,6 +30,36 @@ if __name__ == '__main__':
     def robot_takes_turn():
         game.robot_takes_turn()
         return game.get_html()
+
+    # for handling javascript animated game, no urls ever change
+    @app.route("/js/move_to/<int:x>,<int:y>", methods=['POST'])
+    def player_moved(x, y):
+        # no game logic happens we just need to watch player move. DEBUG
+        game.player_moves_player(x, y)
+        if not game.turnSuccessful:
+            return jsonify({})
+        game.prep_links()  # get new links
+        method, (player, x, y) = game.lastTurn
+        return jsonify({
+                "move_player":["%s" % player.id, "%s,%s" % (x,y)],
+                "change_turn": [],
+                "link_tiles": game.linked_tiles, # change over to new linked tiles
+            })
+
+    # for handling javascript animated game, no urls ever change
+    @app.route("/js/remove_at/<int:x>,<int:y>", methods=['POST'])
+    def tile_removed(x, y):
+        game.player_removes_tile(x, y)
+        if not game.turnSuccessful:
+            return jsonify({})
+        game.prep_links()  # get new links
+        method, (tile, x, y) = game.lastTurn
+        return jsonify({
+                "remove_tile": [tile.ID,],
+                "change_turn": [],
+                "link_tiles": game.linked_tiles, # changeover to new linked tiles
+            })
+
 
     app.run(debug=True)  # run with debug=True to allow interaction & feedback when
                     # error / exception occurs.
