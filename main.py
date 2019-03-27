@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from JSBoard import JSGame
 # run this module to play the browsers-supported game
 
