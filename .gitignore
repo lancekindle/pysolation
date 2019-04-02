@@ -49,6 +49,8 @@ coverage.xml
 
 # Django stuff:
 *.log
+SECRET_KEY*
+db.sqlite3
 
 # Sphinx documentation
 docs/_build/
