@@ -17,12 +17,12 @@ if __name__ == '__main__':
     def root_url():
         return game.get_html()
 
-    @app.route("/move_player_to/<int:x>,<int:y>")
+    @app.route("/game/move_player_to/<int:x>,<int:y>")
     def move_player_to(x, y):
         game.player_moves_player(x, y)
         return game.get_html()
 
-    @app.route("/remove_tile_at/<int:x>,<int:y>")
+    @app.route("/game/remove_tile_at/<int:x>,<int:y>")
     def remove_tile_at(x, y):
         game.player_removes_tile(x, y)
         return game.get_html()

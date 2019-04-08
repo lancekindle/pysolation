@@ -109,7 +109,7 @@ class HtmlGameBoard(RobotGameBoard):
             x2, y2 = tile.x, tile.y
             if x == x2 and y == y2:  # skip tile under player
                 continue
-            tile.set_link("/move_player_to/" + str(x2) + ',' + str(y2))
+            tile.set_link("/game/move_player_to/" + str(x2) + ',' + str(y2))
             linked.append(tile.ID)
         return linked  # return ID-list of active "clickable" tiles
 
@@ -120,7 +120,7 @@ class HtmlGameBoard(RobotGameBoard):
         for x, y, tile in self:
             if (x, y) in player_coordinates:
                 continue  # cannot remove tile from underneath a player
-            tile.set_link("/remove_tile_at/" + str(x) + ',' + str(y))
+            tile.set_link("/game/remove_tile_at/" + str(x) + ',' + str(y))
             linked.append(tile.ID)
         return linked  # return ID-list of active "clickable, removable" tiles
 
