@@ -17,13 +17,19 @@ class Tile:
             particular Tile, use player == tile, or player in board[i, j] also works
     """
 
-    def __init__(self, x, y):
+    @classmethod
+    def create(cls, x=None, y=None):
+        """ use a create method to not override a Django-based Tile's __init__ method """
+        if x is None or y is None:
+            raise ValueError("tile cannot be initiated without x and y values: got {}, {}".format(x, y))
+        self = cls()
         self.x = x
         self.y = y
         self.visible = True
         self.solid = False
         self.ID = "{x},{y}".format(x=x, y=y)
         self.player = None
+        return self
 
     def __repr__(self):
         pos = str(self.x) + ',' + str(self.y)
@@ -68,7 +74,9 @@ class Player:
                ("#FF00FF", "Purple"), ("#00FFFF", "Cyan"), ("#FFFF00", "Yellow")]
     _id = [1]
 
-    def __init__(self, x, y):
+    @classmethod
+    def create(cls, x, y):
+        self = cls()
         self.x = x
         self.y = y
         ID = self._id.pop()
@@ -79,6 +87,7 @@ class Player:
         self.disabled = False
         self.active = False  # for determining style. Game will set Player's currentPlayer to True when it has turn
         self.humanControlled = True  # for determining which Players are robots / AI controlled
+        return self
 
     def move_to(self, x, y):
         """ reassigns coordinates. Because it does not reassign player to Tile, this funciton should only be called by

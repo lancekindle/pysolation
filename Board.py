@@ -50,19 +50,22 @@ class _BoardSetup(_GamePieceAccess):
         self.shape = (h, w)
         self.w = w
         self.h = h
+        self.fill_board(w, h)
+        self.players = []
+
+    def fill_board(self, w, h):
         rows = []
         for x in range(w):
-            col = [self.Tile(x,y) for y in range(h)]
+            col = [self.Tile.create(x,y) for y in range(h)]
             rows.append(col)
         self.board = np.array(rows)
-        self.players = []
 
     def add_players(self, qty):
         """ add players to the board in quantity specified, spacing them equally apart """
         startingPositions = self.get_starting_positions_for_players(qty)
         self.players = [None]*qty
         for i in range(qty):
-            p = self.Player(*startingPositions[i])
+            p = self.Player.create(*startingPositions[i])
             self.players[i] = p
             self.move_player(p, p.x, p.y)
 
