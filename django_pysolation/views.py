@@ -13,6 +13,15 @@ def load_game_from_django(django_board):
     gb = HtmlGameBoard()
     game.board = gb
     gb.setup()
+    gb.fill_board(django_board.w, django_board.h)
+    # replace tiles with tiles from django
+    for (x, y, _), t in zip(gb, tiles):
+        #print("tile", file=sys.stderr)
+        tile = HtmlTile.create(x,y)
+        tile.ID = t.ID
+        tile.visible = t.visible
+        tile.solid = t.solid
+        gb[x, y] = tile
     gb.players.clear()
     for p in players:
         player = HtmlPlayer.create(p.x, p.y)
@@ -20,15 +29,8 @@ def load_game_from_django(django_board):
         player.disabled = p.disabled
         player.ID = p.ID
         gb.players.append(player)
-    gb.fill_board(django_board.w, django_board.h)
-    # replace tiles with tiles from django
-    for (x, y, _), t in zip(gb, tiles):
-        print("tile", file=sys.stderr)
-        tile = HtmlTile.create(x,y)
-        tile.ID = t.ID
-        tile.visible = t.visible
-        tile.solid = t.solid
-        gb[x, y] = tile
+        holding_tile = gb[player.x, player.y]
+        holding_tile.player = player
     # turn-type hardcoded for now
     game.turnType = game.MOVE_PLAYER
     return game
@@ -47,8 +49,7 @@ def save_game_to_django(game):
                y=player.y, disabled=player.disabled, active=player.active)
         p.save()
 
-# Create your views here.
-def index(request):
+def get_or_create_game():
     board = models.Board.objects.all().first()
     if board:
         game = load_game_from_django(board)
@@ -56,12 +57,29 @@ def index(request):
         game = HtmlGame()
         game.setup()  # sets up common 9x9 board with 2 players
         save_game_to_django(game)
-    # now we display the main board to the user.... 
+    return game
+
+# Create your views here.
+def index(request):
+    """ create or use first board game """
+        # now we display the main board to the user.... 
+    game = get_or_create_game()
     context = {
               "game": game,
               "board": game.board,
     }
     return render(request, 'django_pysolation/index.html', context=context)
 
-def move_player(request):
-    request.args
+def move_player_to(request, x, y):
+    y = int(y)
+    x = int(x)
+    game = get_or_create_game()
+    game.player_moves_player(x, y)
+    print(game.turnSuccessful, file=sys.stderr)
+    active = game.get_active_player()
+    print(active.x, active.y, file=sys.stderr)
+    context = {
+              "game": game,
+              "board": game.board,
+    }
+    return render(request, 'django_pysolation/index.html', context=context)
