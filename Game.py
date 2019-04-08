@@ -80,10 +80,10 @@ class Player:
         self.x = x
         self.y = y
         ID = self._id.pop()
-        self.id = 'player_' + str(ID)
         self._id.append(ID + 1)  # set ID and increment ID#
+        self.ID = 'player_{}'.format(ID)
         self.color, self.colorName = self._colors.pop(0)
-        self._colors.append(self.color)  # put first color at end of class-wide list -> so next instance gets new color
+        self._colors.append((self.color, self.colorName))  # put first color at end of class-wide list -> so next instance gets new color
         self.disabled = False
         self.active = False  # for determining style. Game will set Player's currentPlayer to True when it has turn
         self.humanControlled = True  # for determining which Players are robots / AI controlled

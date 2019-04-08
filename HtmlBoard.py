@@ -54,7 +54,7 @@ class HtmlPlayer(Player):
             activity = 'disabled'
         elif self.active:
             activity = 'active'
-        html = '<div id="' + self.id  + '" class="player ' + activity + '" style="position:absolute; background-color:' + self.color + '"></div>'
+        html = '<div id="' + self.ID  + '" class="player ' + activity + '" style="position:absolute; background-color:' + self.color + '"></div>'
         return html
 
     @classmethod
