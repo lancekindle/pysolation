@@ -5,32 +5,32 @@ import math
 #=================================================================
 class _GamePieceAccess:
 
-    def __iter__(self):
+    def iter(self):
         for x in range(self.w):
             for y in range(self.h):
-                yield x, y, self.board[x, y]
+                yield x, y, self.dict_board[x, y]
 
-    def __getitem__(self, *args):
-        return self.board.__getitem__(*args)
+    def get(self, x, y):
+        return self.dict_board.__getitem__((x, y))
 
-    def __setitem__(self, *args):
-        self.board.__setitem__(*args)
+    def set(self, x, y):
+        self.dict_board.__setitem__((x, y))
 
     def get_player_at(self, x, y):
         """ return player attribute of tile at specified x, y coordinates """
-        return self[x, y].player
+        return self.get(x, y).player
 
     def remove_at(self, x, y):
         """ "Remove" Tile at specified coordinate. This will set the visible attribute to False """
-        self.board[x, y].visible = False
-        return self.board[x, y]
+        self.dict_board[x, y].visible = False
+        return self.dict_board[x, y]
 
     def move_player(self, player, x, y):
         """ move player from occupied tile to tile @ x, y coordinates. """
-        tile = self[player.x, player.y]
+        tile = self.get(player.x, player.y)
         tile.player = None
         player.move_to(x, y)
-        target = self[x, y]
+        target = self.get(x, y)
         target.player = player
 
 
@@ -58,7 +58,7 @@ class _BoardSetup(_GamePieceAccess):
         for x in range(w):
             col = [self.Tile.create(x,y) for y in range(h)]
             rows.append(col)
-        self.board = np.array(rows)
+        self.dict_board = np.array(rows)
 
     def add_players(self, qty):
         """ add players to the board in quantity specified, spacing them equally apart """
@@ -107,8 +107,11 @@ class _TileFinder(_BoardSetup):
         xbig = min(self.w, x + 2)
         ysmall = max(0, y - 1)
         ybig = min(self.h, y + 2)
-        miniboard = self.board[xsmall:xbig, ysmall:ybig]
-        return miniboard.flatten() # 1-D array of tiles
+        miniboard = []
+        for x in range(xsmall, xbig):
+            for y in range(ysmall, ybig):
+                miniboard.append(self.dict_board[x, y])
+        return miniboard
 
     def get_landable_tiles_around(self, x, y):
         """ return list of tiles around x, y that are open for movement. Do NOT use this for finding tiles to remove;
@@ -142,7 +145,7 @@ class _TileFinder(_BoardSetup):
     def get_all_open_removable_tiles(self):
         """ return list of all tiles available to remove on the board """
         removable = []
-        for x, y, tile in self:
+        for x, y, tile in self.iter():
             if not tile.visible:
                 continue
             if self.get_player_at(x, y):
@@ -169,9 +172,9 @@ class _RuleValidator(_TileFinder):
 
     def is_valid_player_move(self, player, x, y):
         """ :return: True if x, y coordinate is an open tile, visible, and next to the specified player, False otherwise. """
-        if not self[x, y].visible:
+        if not self.get(x, y).visible:
             return False
-        if not self[x, y] in self.get_tiles_around(player.x, player.y):
+        if not self.get(x, y) in self.get_tiles_around(player.x, player.y):
             return False
         if self.get_player_at(x, y):
             return False
@@ -179,9 +182,9 @@ class _RuleValidator(_TileFinder):
 
     def is_valid_tile_remove(self, x, y):
         """ :return: True if Tile is visible on board, not solid, and unoccupied by a player, False otherwise. """
-        if not self[x, y].visible:
+        if not self.get(x, y).visible:
             return False
-        if self[x, y].solid:
+        if self.get(x, y).solid:
             return False
         if self.get_player_at(x, y):
             return False
@@ -225,11 +228,16 @@ class GameBoard(_RuleValidator):
         grid = np.zeros((self.w, self.h)) + gapVal
         for x in range(self.w):
             for y in range(self.h):
-                if self.board[x, y].player:
+                if self.dict_board[x, y].player:
                     grid[x, y] = playerVal
-                elif self.board[x, y].visible:
+                elif self.dict_board[x, y].visible:
                     grid[x, y] = tileVal
         return grid
 
     def __str__(self):
-        return str(self.board.transpose())  # transpose because numpy's representation will show x/y reversed
+        b = ""
+        for x in range(self.w):
+            b += "\n"
+            for y in range(self.h):
+                b += str(self.dict_board[x,y])
+        return b

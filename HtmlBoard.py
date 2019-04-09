@@ -78,9 +78,10 @@ class HtmlGameBoard(RobotGameBoard):
     def get_html(self):
         """ return html representing board """
         html = '<div class="board">'
-        for row in self.board:
+        for y in range(self.h):
             html += '<div class="row">'
-            for tile in row:
+            for x in range(self.w):
+                tile = self.get(x,y)
                 html += tile.get_html()
             html += '</div>'  # or some other visual break between rows
         html += self.footer  # add extras
@@ -97,7 +98,7 @@ class HtmlGameBoard(RobotGameBoard):
 
     def reset_links(self):
         """ reset links in all tiles """
-        for x, y, tile in self:
+        for x, y, tile in self.iter():
             tile.reset_links()
 
     def set_tile_links_for_player_move(self, player):
@@ -117,7 +118,7 @@ class HtmlGameBoard(RobotGameBoard):
         """ set tile links on all removable tiles """
         player_coordinates = set((player.x, player.y) for player in self.players)
         linked = []
-        for x, y, tile in self:
+        for x, y, tile in self.iter():
             if (x, y) in player_coordinates:
                 continue  # cannot remove tile from underneath a player
             tile.set_link("/game/remove_tile_at/" + str(x) + ',' + str(y))
