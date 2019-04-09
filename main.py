@@ -1,14 +1,15 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from JSBoard import JSGame
+from HtmlBoard import HtmlGame
 # run this module to play the browsers-supported game
 
 if __name__ == '__main__':
     from flask import Flask, jsonify
     app = Flask(__name__)  # http://flask.pocoo.org/docs/0.10/quickstart/#quickstart
 
-    game = JSGame()
-    number_of_bots = 0
-    number_of_humans = 2
+    game = HtmlGame()
+    number_of_bots = 1
+    number_of_humans = 1
     board_dimensions = (7, 6)
     
     game.setup(number_of_humans, board_dimensions, number_of_bots)
