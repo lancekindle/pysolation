@@ -28,17 +28,17 @@ def load_game_from_django(django_board):
         player.active = p.active
         player.disabled = p.disabled
         player.ID = p.ID
+        player.color = p.color
         gb.players.append(player)
         holding_tile = gb[player.x, player.y]
         holding_tile.player = player
-    # turn-type hardcoded for now
-    game.turnType = game.MOVE_PLAYER
+    game.turnType = django_board.turnType
     return game
 
 def save_game_to_django(game):
     # create database entries for board, tiles, and players
     board = game.board
-    django_board = models.Board(h=board.h, w=board.w)
+    django_board = models.Board(h=board.h, w=board.w, turnType=game.turnType)
     django_board.save()
     for x, y, tile in board:
         t = models.Tile(board=django_board, x=x, y=y,
@@ -46,7 +46,7 @@ def save_game_to_django(game):
         t.save()
     for player in board.players:
         p = models.Player(board=django_board, ID=player.ID, x=player.x,
-               y=player.y, disabled=player.disabled, active=player.active)
+               y=player.y, disabled=player.disabled, active=player.active, color=player.color)
         p.save()
 
 def get_or_create_game():
@@ -71,8 +71,7 @@ def index(request):
     return render(request, 'django_pysolation/index.html', context=context)
 
 def move_player_to(request, x, y):
-    y = int(y)
-    x = int(x)
+    x, y = int(x), int(y)
     game = get_or_create_game()
     game.player_moves_player(x, y)
     print(game.turnSuccessful, file=sys.stderr)
@@ -82,4 +81,19 @@ def move_player_to(request, x, y):
               "game": game,
               "board": game.board,
     }
+    save_game_to_django(game)
+    return render(request, 'django_pysolation/index.html', context=context)
+
+def remove_tile_at(request, x, y):
+    x, y = int(x), int(y)
+    game = get_or_create_game()
+    game.player_removes_tile(x, y)
+    print(game.turnSuccessful, file=sys.stderr)
+    active = game.get_active_player()
+    print(active.x, active.y, file=sys.stderr)
+    context = {
+              "game": game,
+              "board": game.board,
+    }
+    save_game_to_django(game)
     return render(request, 'django_pysolation/index.html', context=context)
