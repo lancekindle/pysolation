@@ -1,6 +1,6 @@
 from django.db import models
 import sys
-import uuid
+import uuid as UUID
 from HtmlBoard import HtmlGame, HtmlTile, HtmlGameBoard, HtmlPlayer
 
 class Board(models.Model, HtmlGameBoard):
@@ -47,6 +47,7 @@ class Player(models.Model, HtmlPlayer):
     colorName = models.CharField(max_length=31)
     disabled = models.BooleanField(default=False)    # True if player is unable to move
     active = models.BooleanField(default=False)  # True if it's players turn
+    assigned_user = models.CharField(max_length=100, default='')
 
 class Tile(models.Model, HtmlTile):
     creation = models.AutoField(primary_key=True)
@@ -71,7 +72,7 @@ class Game(models.Model, HtmlGame):
 
     def make_uuid(self):
         if not self.uuid:
-            sample = uuid.uuid4()
+            sample = UUID.uuid4()
             self.uuid = hex(sample.time_low)[2:]
     
     def set_link_prepend(self, uuid=None):
