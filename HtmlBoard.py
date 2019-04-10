@@ -70,10 +70,7 @@ class HtmlGameBoard(RobotGameBoard):
     """ provides html-export functions for controlling gameboard and getting visual feel """
     Player = HtmlPlayer
     Tile = HtmlTile
-
-    def __init__(self, *args, **kwargs):
-        super(HtmlGameBoard, self).__init__(*args, **kwargs)
-        self.footer = ''
+    footer = ''
 
     def get_html(self):
         """ return html representing board """

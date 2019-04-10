@@ -16,6 +16,9 @@ class Tile:
         player: reference to player token. player = None if Tile is unoccupied. When checking if a player occupies a
             particular Tile, use player == tile, or player in board[i, j] also works
     """
+    player = None
+    visible = True
+    solid = False
 
     @classmethod
     def create(cls, x=None, y=None):
@@ -25,10 +28,7 @@ class Tile:
         self = cls()
         self.x = x
         self.y = y
-        self.visible = True
-        self.solid = False
         self.ID = "{x},{y}".format(x=x, y=y)
-        self.player = None
         return self
 
     def __repr__(self):
@@ -138,6 +138,7 @@ class Game:
     REMOVE_TILE = 5
     MOVE_PLAYER = 6
     GAME_OVER = 4
+    TURN_TYPES = [REMOVE_TILE, MOVE_PLAYER, GAME_OVER]
     GameBoard = GameBoard
     Player = Player
     Tile = Tile
