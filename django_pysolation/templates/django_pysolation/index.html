@@ -15,7 +15,9 @@
     {{ style | safe }}
 </style>
 {% endwith %}
-
+<h3>A friend can join you with this code:</h3>
+<h2>{{ game.uuid }}<h2>
+<br>
 {% with board.get_html as html %}
     {{ html | safe }}
 {% endwith %}

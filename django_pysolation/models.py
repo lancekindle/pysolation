@@ -74,7 +74,7 @@ class Game(models.Model, HtmlGame):
     def make_uuid(self):
         if not self.uuid:
             sample = UUID.uuid4()
-            self.uuid = hex(sample.time_low)[2:]
+            self.uuid = hex(sample.time_low)[2::2]
     
     def set_link_prepend(self, uuid=None):
         if not uuid:

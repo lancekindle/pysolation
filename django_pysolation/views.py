@@ -1,10 +1,14 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.db import IntegrityError
+from django.http import HttpResponse, Http404
 import django
 import uuid as UUID
 import sys
 from . import models
 
+def join_or_start(request):
+    """ present user with simple option of starting a game, or joining an existing one """
+    return render(request, 'django_pysolation/start.html', context={})
 
 def refresh(request, uuid=None, timestamp=None):
     """ returns status code 200 only when game has updated from given timestamp """
@@ -21,20 +25,31 @@ def index(request, uuid=None):
     """ create or use first board game """
     # now we display the main board to the user.... 
     game = None #models.Game.objects.all().first()
+    if not uuid:
+        # get uuid from url parameters aka game/?uuid=c234 
+        print(request.GET, file=sys.stderr)
+        uuid = request.GET.get('code', None)
+    print("uuid???", uuid, file=sys.stderr)
     if uuid:
         game = models.Game.objects.filter(uuid=uuid).first()
-        game.board.preload_tiles()
+        if game:
+            game.board.preload_tiles()
     if not game:
-        print("game created", file=sys.stderr)
-        w, h = 5, 6
-        if uuid:
-            board = models.Board(w=w, h=h, uuid=uuid)
-        else:
+        try:
+            print("game created", file=sys.stderr)
+            w, h = 5, 6
             board = models.Board(w=w, h=h)
-        game = models.Game(board=board)
-        game.make_uuid()
-        game.setup(2, (w,h), 0)
-        game.save()
+            game = models.Game(board=board)
+            if uuid:
+                game.uuid = uuid
+            else:
+                uuid = game.make_uuid()
+            game.setup(2, (w,h), 0)
+            game.save()
+        except IntegrityError:
+            print("clashing game uuid found", file=sys.stderr)
+            models.Game.objects.all().delete()
+            raise Http404("DATABASE OUT OF MEMORY. WIPING ALL PREVIOUS GAMES.....")
     else:
         print("game found", file=sys.stderr)
         game.get_active_player()  # workaround to load and show players on html page
