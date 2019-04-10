@@ -2,78 +2,60 @@ from django.shortcuts import render
 from django.http import HttpResponse
 import django
 import sys
-from HtmlBoard import HtmlGameBoard, HtmlGame, HtmlPlayer, HtmlTile
 from . import models
 
-def load_game_from_django(django_board):
-    # order by 'id' NOT 'ID' aka order by creation order
-    tiles = models.Tile.objects.filter(board=django_board)
-    players = models.Player.objects.filter(board=django_board)
-    game = HtmlGame()
-    gb = HtmlGameBoard()
-    game.board = gb
-    gb.setup()
-    gb.fill_board(django_board.w, django_board.h)
-    # replace tiles with tiles from django
-    for (x, y, _), t in zip(gb, tiles):
-        #print("tile", file=sys.stderr)
-        tile = HtmlTile.create(x,y)
-        tile.ID = t.ID
-        tile.visible = t.visible
-        tile.solid = t.solid
-        gb[x, y] = tile
-    gb.players.clear()
-    for p in players:
-        player = HtmlPlayer.create(p.x, p.y)
-        player.active = p.active
-        player.disabled = p.disabled
-        player.ID = p.ID
-        player.color = p.color
-        gb.players.append(player)
-        holding_tile = gb[player.x, player.y]
-        holding_tile.player = player
-    game.turnType = django_board.turnType
-    return game
-
-def save_game_to_django(game):
-    # create database entries for board, tiles, and players
-    board = game.board
-    django_board = models.Board(h=board.h, w=board.w, turnType=game.turnType)
-    django_board.save()
-    for x, y, tile in board:
-        t = models.Tile(board=django_board, x=x, y=y,
-             ID=tile.ID, visible=tile.visible, solid=tile.solid)
-        t.save()
-    for player in board.players:
-        p = models.Player(board=django_board, ID=player.ID, x=player.x,
-               y=player.y, disabled=player.disabled, active=player.active, color=player.color)
-        p.save()
-
-def get_or_create_game():
-    board = models.Board.objects.all().first()
-    if board:
-        game = load_game_from_django(board)
-    else:
-        game = HtmlGame()
-        game.setup()  # sets up common 9x9 board with 2 players
-        save_game_to_django(game)
-    return game
-
-# Create your views here.
-def index(request):
+def index(request, uuid=None):
     """ create or use first board game """
-        # now we display the main board to the user.... 
-    game = get_or_create_game()
+    # now we display the main board to the user.... 
+    game = None #models.Game.objects.all().first()
+    if uuid:
+        game = models.Game.objects.filter(uuid=uuid).first()
+        game.board.preload_tiles()
+    if not game:
+        print("game created", file=sys.stderr)
+        w, h = 5, 6
+        if uuid:
+            board = models.Board(w=w, h=h, uuid=uuid)
+        else:
+            board = models.Board(w=w, h=h)
+        game = models.Game(board=board)
+        game.make_uuid()
+        game.setup(2, (w,h), 0)
+        game.save()
+    else:
+        print("game found", file=sys.stderr)
+        game.get_active_player()  # workaround to load and show players on html page
+    game.set_link_prepend(game.uuid)
+    game.prep_links()  # pre-fetches tiles so they can have urls rewritten
     context = {
               "game": game,
               "board": game.board,
     }
     return render(request, 'django_pysolation/index.html', context=context)
 
-def move_player_to(request, x, y):
+def game_landing(request, uuid):
+    """ game is loaded by uuid """
+    game = models.Game.objects.filter(uuid=uuid).first()
+    game.board.preload_tiles()
+    game.set_link_prepend(game.uuid)
+    game.prep_links()  # pre-fetches tiles so they can have urls rewritten
+    if not game:
+        return HttpResponse("Game not found")
+    game.get_active_player()  # workaround to load and show players on html page
+    context = {
+              "game": game,
+              "board": game.board,
+    }
+    return render(request, 'django_pysolation/index.html', context=context)
+
+def move_player_to(request, uuid, x, y):
     x, y = int(x), int(y)
-    game = get_or_create_game()
+    game = models.Game.objects.filter(uuid=uuid).first()
+    game.board.preload_tiles()
+    game.set_link_prepend(game.uuid)
     game.player_moves_player(x, y)
+    game.prep_links()  # pre-fetches tiles so they can have urls rewritten
+    game.prep_links()  # actually sets tiles with correct urls
     print(game.turnSuccessful, file=sys.stderr)
     active = game.get_active_player()
     print(active.x, active.y, file=sys.stderr)
@@ -81,13 +63,17 @@ def move_player_to(request, x, y):
               "game": game,
               "board": game.board,
     }
-    save_game_to_django(game)
+    game.save()
     return render(request, 'django_pysolation/index.html', context=context)
 
-def remove_tile_at(request, x, y):
+def remove_tile_at(request, uuid, x, y):
     x, y = int(x), int(y)
-    game = get_or_create_game()
+    game = models.Game.objects.filter(uuid=uuid).first()
+    game.board.preload_tiles()
+    game.set_link_prepend(game.uuid)
     game.player_removes_tile(x, y)
+    game.prep_links()  # pre-fetches tiles so they can have urls rewritten
+    game.prep_links()  # actually sets tiles with correct urls
     print(game.turnSuccessful, file=sys.stderr)
     active = game.get_active_player()
     print(active.x, active.y, file=sys.stderr)
@@ -95,5 +81,5 @@ def remove_tile_at(request, x, y):
               "game": game,
               "board": game.board,
     }
-    save_game_to_django(game)
+    game.save()
     return render(request, 'django_pysolation/index.html', context=context)

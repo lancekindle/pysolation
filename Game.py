@@ -73,6 +73,9 @@ class Player:
     _colors = [("#FF0000", "Red"), ("#0000FF", "Blue"), ("#00FF00", "Green"),
                ("#FF00FF", "Purple"), ("#00FFFF", "Cyan"), ("#FFFF00", "Yellow")]
     _id = [1]
+    disabled = False
+    active = False  # for determining style. Game will set Player's currentPlayer to True when it has turn
+    humanControlled = True  # for determining which Players are robots / AI controlled
 
     @classmethod
     def create(cls, x, y):
@@ -84,9 +87,6 @@ class Player:
         self.ID = 'player_{}'.format(ID)
         self.color, self.colorName = self._colors.pop(0)
         self._colors.append((self.color, self.colorName))  # put first color at end of class-wide list -> so next instance gets new color
-        self.disabled = False
-        self.active = False  # for determining style. Game will set Player's currentPlayer to True when it has turn
-        self.humanControlled = True  # for determining which Players are robots / AI controlled
         return self
 
     def move_to(self, x, y):

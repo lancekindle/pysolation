@@ -1,12 +1,42 @@
 <html>
-{% with game.prep_links as _ %}
-    {% with game.get_style as style %}
-    <style>
-        {{ style | safe }}
-    </style>
-    {% endwith %}
+{% comment %}
+    div.row { overflow: hidden; }
+    div.tile { position: relative; width: 50px; height: 50px; float: left; margin: 2px; }
+    div.tile.visible { background-color: #FF9912 }
+    div.tile.hidden { background-color: transparent; }
+    div.tile.link { cursor: pointer; }
+    a.tile-link { display: block; width: 50px; height: 50px; }
+    div.player { width: 50px; height: 50px; border-radius: 50%; }'
+    div.player.active { border: 2px solid white; box-sizing: border-box; }'
+    div.player.disabled { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.5) 5px, rgba(0, 0, 0, 0.5) 10px)}'
+{% endcomment %}
+{% with game.get_style as style %}
+<style>
+    {{ style | safe }}
+</style>
 {% endwith %}
 
 {% with board.get_html as html %}
     {{ html | safe }}
-{% endwith %}</html>
+{% endwith %}
+{% comment %}
+{% for x, y, tile in board %}
+    {% if x == 0 %}
+        {% if y == 0 %}
+            <div class="row">
+        {% endif %}
+    {% endif %}
+
+    {{ tile.html | safe }}
+    {% with visibility = 'visible' if tile.visible else 'hidden' %}
+    {% linkable = 'link' if tile.visible and tile.link and not tile.player else '' %}
+    <div class='tile {{visibility}} {{linkable}}' id='{{tile.ID}}'>
+    {% if linkable %}
+        <a href="{{tile.link}}" class="tile-link "></a>'
+    {% endif %}
+        if self.player:
+            html += self.player.get_html()
+        html += '</div>'
+{% endfor %}
+    {% endcomment %}
+</html>
