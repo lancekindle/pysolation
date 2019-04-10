@@ -12,6 +12,15 @@ class _GamePieceAccess:
 
     def get(self, x, y):
         return self.dict_board.__getitem__((x, y))
+    
+    def set(self, x, y, tile):
+        self.dict_board[x,y] = tile
+    
+    def get_all_tiles(self):
+        """ return all tiles currently in dictionary. Will return fewer tiles if they haven't been
+            set in the dictionary yet
+        """
+        return list(self.dict_board.values())
 
     def get_player_at(self, x, y):
         """ return player attribute of tile at specified x, y coordinates """
@@ -35,7 +44,7 @@ class _GamePieceAccess:
 class _BoardSetup(_GamePieceAccess):
     Player = None
     Tile = None
-    board = None
+    dict_board = None
     shape = (0, 0)
 
     def setup(self, size=(9,9)):
@@ -51,11 +60,10 @@ class _BoardSetup(_GamePieceAccess):
         self.players = []
 
     def fill_board(self, w, h):
-        rows = []
+        self.dict_board = {}
         for x in range(w):
-            col = [self.Tile.create(x,y) for y in range(h)]
-            rows.append(col)
-        self.dict_board = np.array(rows)
+            for y in range(h):
+                self.set(x,y, self.Tile.create(x,y))
 
     def add_players(self, qty):
         """ add players to the board in quantity specified, spacing them equally apart """
@@ -210,7 +218,7 @@ class GameBoard(_RuleValidator):
                 GameBoard class.
         Tile:   reference to Tile class to use when populating the GameBoard. Just Like Player, you can overwrite this
                 reference to use your own Tile class if desired.
-        board:  The actual board: a numpy array of Tiles. the GameBoard class itself provides native get and set methods
+        dict_board:  The actual board: a numpy array of Tiles. the GameBoard class itself provides native get and set methods
                 so that you do not have to access board directly. Instead, just use gameboard[x, y].
         shape:  a numpy-style shape describing shape of gameboard.
     """
@@ -227,7 +235,7 @@ class GameBoard(_RuleValidator):
             for y in range(self.h):
                 if self.get_player_at(x, y):
                     grid[x, y] = playerVal
-                elif self.dict_board[x, y].visible:
+                elif self.get(x, y).visible:
                     grid[x, y] = tileVal
         return grid
 
@@ -236,5 +244,5 @@ class GameBoard(_RuleValidator):
         for x in range(self.w):
             b += "\n"
             for y in range(self.h):
-                b += str(self.dict_board[x,y])
+                b += str(self.get(x,y))
         return b
