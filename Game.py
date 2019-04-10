@@ -3,7 +3,7 @@ import math
 from Board import GameBoard
 
 
-class Tile:
+class Tile(object):
     """ A GameBoard is composed of rows and columns of Tiles. Each Tile has a specific x and y coordinate. It is up to
     the GameBoard setup to ensure a Tile has the correct x and y coordinates. When a Tile is NOT visible, it is
     considered removed from the Board, and can not be occupied by a Player.
@@ -59,7 +59,7 @@ class Tile:
         self.visible = tf
 
 
-class Player:
+class Player(object):
     """ Player is moved around the board, and is trapped once it cannot move on it's own turn.
 
     Attributes:
@@ -97,7 +97,7 @@ class Player:
         self.y = y
         
 
-class BoardExporter:
+class BoardExporter(object):
     """ allow exporting board to grid. Copies all relevant data from the board and then gives access to analyzing functions
     """
     def __init__(self, board):
@@ -125,7 +125,7 @@ class BoardExporter:
         return w, h
 
 
-class Game:
+class Game(object):
     """ Game keeps track of the GameBoard and game-state. It is responsible for interfacing with the user/player,
     checking that any tile remove or player token move action is valid and then applying the action. It also keeps
     track of whose turn it is, and what type of turn it is (removing tile or moving player).

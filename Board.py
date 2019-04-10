@@ -3,7 +3,7 @@ import math
 
 
 #=================================================================
-class _GamePieceAccess:
+class _GamePieceAccess(object):
 
     def iter(self):
         for x in range(self.w):
@@ -108,10 +108,10 @@ class _TileFinder(_BoardSetup):
     
     def get_tiles_around(self, x, y):
         """ :return: 1-D numpy array of tiles surrounding given coordinate, including tile @ coordinate itself """
-        xsmall = max(0, x - 1)
-        xbig = min(self.w, x + 2)
-        ysmall = max(0, y - 1)
-        ybig = min(self.h, y + 2)
+        xsmall = int(max(0, x - 1))
+        xbig = int(min(self.w, x + 2))
+        ysmall = int(max(0, y - 1))
+        ybig = int(min(self.h, y + 2))
         miniboard = []
         for x in range(xsmall, xbig):
             for y in range(ysmall, ybig):
