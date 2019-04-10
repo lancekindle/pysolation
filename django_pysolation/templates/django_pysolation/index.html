@@ -19,6 +19,23 @@
 {% with board.get_html as html %}
     {{ html | safe }}
 {% endwith %}
+<script>
+var interval = setInterval(refresh_check, 500);
+function refresh_check() {
+    var client = new XMLHttpRequest();
+    client.open("GET", "{{ refresh_check_url }}", true);
+    client.send();
+    client.onreadystatechange = function() {
+        if (this.readyState == this.HEADERS_RECEIVED) {
+            if (this.status == 200) {
+                clearInterval(interval);
+                window.location = "{{ game_url }}";
+            }
+            client.abort();  // always abort after getting header
+        }
+    }
+}
+</script>
 {% comment %}
 {% for x, y, tile in board %}
     {% if x == 0 %}

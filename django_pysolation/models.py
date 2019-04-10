@@ -69,6 +69,7 @@ class Game(models.Model, HtmlGame):
     board = models.ForeignKey(Board, on_delete=models.CASCADE)
     turnType = models.IntegerField(default=HtmlGame.MOVE_PLAYER)
     uuid = models.CharField(max_length=25, unique=True)
+    timestamp = models.CharField(max_length=100)  # hold time of last move
 
     def make_uuid(self):
         if not self.uuid:
@@ -82,6 +83,7 @@ class Game(models.Model, HtmlGame):
 
     def save(self, *args, **kwargs):
         self.make_uuid()
+        self.timestamp = UUID.uuid4().hex  # update timestamp to latest modification
         print(self.board_id, file=sys.stderr)
         self.board.save()
         print(self.board, file=sys.stderr)

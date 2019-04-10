@@ -5,6 +5,18 @@ import uuid as UUID
 import sys
 from . import models
 
+
+def refresh(request, uuid=None, timestamp=None):
+    """ returns status code 200 only when game has updated from given timestamp """
+    if uuid is None or timestamp is None:
+        return HttpResponse(status=404)
+    game = models.Game.objects.filter(uuid=uuid).first()
+    if not game:
+        return HttpResponse(status=404)
+    if timestamp == game.timestamp:
+        return HttpResponse(status=404)
+    return HttpResponse(status=200)
+
 def index(request, uuid=None):
     """ create or use first board game """
     # now we display the main board to the user.... 
@@ -27,9 +39,12 @@ def index(request, uuid=None):
         print("game found", file=sys.stderr)
         game.get_active_player()  # workaround to load and show players on html page
     user_id = manage_active_players(request, game)
+    game_url = "/game/" + game.uuid
     context = {
-              "game": game,
-              "board": game.board,
+            "game_url": game_url,
+            "refresh_check_url": game_url + "/refresh/" + game.timestamp,
+            "game": game,
+            "board": game.board,
     }
     response = render(request, 'django_pysolation/index.html', context=context)
     response.set_cookie('user_id', user_id)
@@ -78,9 +93,12 @@ def game_landing(request, uuid):
     if not game:
         return HttpResponse("Game not found")
     game.get_active_player()  # workaround to load and show players on html page
+    game_url = "/game/" + game.uuid
     context = {
-              "game": game,
-              "board": game.board,
+            "game_url": game_url,
+            "refresh_check_url": game_url + "/refresh/" + game.timestamp,
+            "game": game,
+            "board": game.board,
     }
     response = render(request, 'django_pysolation/index.html', context=context)
     response.set_cookie('user_id', user_id)
@@ -96,11 +114,15 @@ def move_player_to(request, uuid, x, y):
     print(game.turnSuccessful, file=sys.stderr)
     active = game.get_active_player()
     print(active.x, active.y, file=sys.stderr)
+    if game.turnSuccessful:
+        game.save()
+    game_url = "/game/" + game.uuid
     context = {
-              "game": game,
-              "board": game.board,
+            "game_url": game_url,
+            "refresh_check_url": game_url + "/refresh/" + game.timestamp,
+            "game": game,
+            "board": game.board,
     }
-    game.save()
     response = render(request, 'django_pysolation/index.html', context=context)
     response.set_cookie('user_id', user_id)
     return response
@@ -115,11 +137,15 @@ def remove_tile_at(request, uuid, x, y):
     print(game.turnSuccessful, file=sys.stderr)
     active = game.get_active_player()
     print(active.x, active.y, file=sys.stderr)
+    if game.turnSuccessful:
+        game.save()
+    game_url = "/game/" + game.uuid
     context = {
-              "game": game,
-              "board": game.board,
+            "game_url": game_url,
+            "refresh_check_url": game_url + "/refresh/" + game.timestamp,
+            "game": game,
+            "board": game.board,
     }
-    game.save()
     response = render(request, 'django_pysolation/index.html', context=context)
     response.set_cookie('user_id', user_id)
     return response
