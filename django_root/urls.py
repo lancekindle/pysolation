@@ -15,10 +15,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django_pysolation import views
-from django.urls import path, include
+# from django.urls import path, include  #django 2.0+
+from django.conf.urls import url, include
 
 urlpatterns = [
     #path('admin/', admin.site.urls),
-    path('', views.join_or_start),
-    path('game/', include('django_pysolation.urls')),
+    url(r'^$', views.join_or_start),
+    url('game/', include('django_pysolation.urls')),
 ]

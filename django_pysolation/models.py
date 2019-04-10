@@ -1,3 +1,4 @@
+from __future__ import print_function
 from django.db import models
 import sys
 import uuid as UUID
@@ -11,7 +12,7 @@ class Board(models.Model, HtmlGameBoard):
     def get(self, x, y):
         """ get tile from cache (board) or retrieve from database """
         try:
-            return super().get(x,y)
+            return super(Board, self).get(x,y)
         except (KeyError, AttributeError) as err:
             if isinstance(err, AttributeError):
                 self.fill_board(0,0)  # create board but don't fill
@@ -21,7 +22,7 @@ class Board(models.Model, HtmlGameBoard):
     
     def save(self, *args, **kwargs):
         """ save all players and tiles in database. Will only save currently loaded tiles """
-        super().save(*args, **kwargs)
+        super(Board, self).save(*args, **kwargs)
         for tile in self.get_all_tiles():
             tile.board = self
             tile.save()
@@ -92,7 +93,7 @@ class Game(models.Model, HtmlGame):
         # FOR SOME REASON, the board_id is not updated when I save the board
         self.board_id = self.board.creation
         # self.board = self.board
-        super().save(*args, **kwargs)
+        super(Game, self).save(*args, **kwargs)
 
     def get_active_player(self):
         if not hasattr(self.board, 'players'):

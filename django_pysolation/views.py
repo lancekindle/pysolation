@@ -1,3 +1,4 @@
+from __future__ import print_function
 from django.shortcuts import render
 from django.db import IntegrityError
 from django.http import HttpResponse, Http404
