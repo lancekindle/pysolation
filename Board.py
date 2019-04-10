@@ -8,13 +8,10 @@ class _GamePieceAccess:
     def iter(self):
         for x in range(self.w):
             for y in range(self.h):
-                yield x, y, self.dict_board[x, y]
+                yield x, y, self.get(x, y)
 
     def get(self, x, y):
         return self.dict_board.__getitem__((x, y))
-
-    def set(self, x, y):
-        self.dict_board.__setitem__((x, y))
 
     def get_player_at(self, x, y):
         """ return player attribute of tile at specified x, y coordinates """
@@ -22,8 +19,8 @@ class _GamePieceAccess:
 
     def remove_at(self, x, y):
         """ "Remove" Tile at specified coordinate. This will set the visible attribute to False """
-        self.dict_board[x, y].visible = False
-        return self.dict_board[x, y]
+        self.get(x, y).visible = False
+        return self.get(x, y)
 
     def move_player(self, player, x, y):
         """ move player from occupied tile to tile @ x, y coordinates. """
@@ -110,7 +107,7 @@ class _TileFinder(_BoardSetup):
         miniboard = []
         for x in range(xsmall, xbig):
             for y in range(ysmall, ybig):
-                miniboard.append(self.dict_board[x, y])
+                miniboard.append(self.get(x, y))
         return miniboard
 
     def get_landable_tiles_around(self, x, y):
@@ -228,7 +225,7 @@ class GameBoard(_RuleValidator):
         grid = np.zeros((self.w, self.h)) + gapVal
         for x in range(self.w):
             for y in range(self.h):
-                if self.dict_board[x, y].player:
+                if self.get_player_at(x, y):
                     grid[x, y] = playerVal
                 elif self.dict_board[x, y].visible:
                     grid[x, y] = tileVal
