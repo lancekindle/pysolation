@@ -75,7 +75,9 @@ class Game(models.Model, HtmlGame):
     def make_uuid(self):
         if not self.uuid:
             sample = UUID.uuid4()
-            self.uuid = hex(sample.time_low)[2::2]
+            self.uuid = hex(sample.time_low)[2::2].replace('L', '')   # e.g. fe45L  but strip the L
+            self.uuid += hex(UUID.uuid4().time_low)[3:4]  # add one more hex letter
+            self.uuid = self.uuid.upper()  # uppercase everything
     
     def set_link_prepend(self, uuid=None):
         if not uuid:

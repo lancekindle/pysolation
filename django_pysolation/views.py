@@ -32,7 +32,9 @@ def join(request, uuid=None):
     if not uuid:
         return HttpResponseRedirect('/game')  # redirect to index, since no join code was given
                                                      # (basically just start a game)
-    game = models.Game.objects.filter(uuid=uuid).first()
+    # retrieve game, checking uppercase uuid if not found at first
+    game = models.Game.objects.filter(uuid=uuid).first() or \
+           models.Game.objects.filter(uuid=uuid.upper()).first()
     if not game:
         return render(request, 'django_pysolation/start.html', context={'error': 'no game found by that ID'})
     return HttpResponseRedirect('/game/{}'.format(uuid))
@@ -50,25 +52,13 @@ def index(request, uuid=None):
         uuid = request.GET.get('code', None)
     print("uuid???", uuid, file=sys.stderr)
     if uuid:
-        game = models.Game.objects.filter(uuid=uuid).first()
+        # retrieve game, checking uppercase uuid if not found at first
+        game = models.Game.objects.filter(uuid=uuid).first() or \
+               models.Game.objects.filter(uuid=uuid.upper()).first()
         if game:
             game.board.preload_tiles()
     if not game:
-        try:
-            print("game created", file=sys.stderr)
-            w, h = 5, 6
-            board = models.Board(w=w, h=h)
-            game = models.Game(board=board)
-            if uuid:
-                game.uuid = uuid
-            else:
-                uuid = game.make_uuid()
-            game.setup(2, (w,h), 0)
-            game.save()
-        except IntegrityError:
-            print("clashing game uuid found", file=sys.stderr)
-            models.Game.objects.all().delete()
-            raise Http404("DATABASE OUT OF MEMORY. WIPING ALL PREVIOUS GAMES.....")
+        return create_and_redirect_to_game(request)
     else:
         print("game found", file=sys.stderr)
         game.get_active_player()  # workaround to load and show players on html page
@@ -83,6 +73,21 @@ def index(request, uuid=None):
     response = render(request, 'django_pysolation/index.html', context=context)
     response.set_cookie('user_id', user_id)
     return response
+
+
+def create_and_redirect_to_game(request):
+    try:
+        print("game created", file=sys.stderr)
+        w, h = 5, 6
+        board = models.Board(w=w, h=h)
+        game = models.Game(board=board)
+        game.setup(2, (w,h), 0)
+        game.save()
+        return HttpResponseRedirect('/game/{}'.format(game.uuid))
+    except IntegrityError:
+        print("clashing game uuid found", file=sys.stderr)
+        models.Game.objects.all().delete()
+        raise Http404("DATABASE OUT OF MEMORY. WIPING ALL PREVIOUS GAMES.....")
 
 
 def manage_active_players(request, game):
@@ -121,7 +126,8 @@ def manage_active_players(request, game):
 
 def game_landing(request, uuid):
     """ game is loaded by uuid """
-    game = models.Game.objects.filter(uuid=uuid).first()
+    game = models.Game.objects.filter(uuid=uuid).first() or \
+           models.Game.objects.filter(uuid=uuid.upper()).first()
     game.board.preload_tiles()
     user_id = manage_active_players(request, game)
     if not game:
