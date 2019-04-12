@@ -14,13 +14,13 @@ def join_or_start(request):
 def refresh(request, uuid=None, timestamp=None):
     """ returns status code 200 only when game has updated from given timestamp """
     if uuid is None or timestamp is None:
-        return HttpResponse(status=404)
+        raise Http404
     game = models.Game.objects.filter(uuid=uuid).first()
     if not game:
-        return HttpResponse(status=404)
+        raise Http404
     if timestamp == game.timestamp:
-        return HttpResponse(status=404)
-    return HttpResponse(status=200)
+        return HttpResponse(status=304)  # NOT MODIFIED status code
+    return HttpResponse(status=303)  # SEE OTHER status code -- aka refresh from another URL
 
 def index(request, uuid=None):
     """ create or use first board game """

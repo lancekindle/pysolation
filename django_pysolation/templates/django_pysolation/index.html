@@ -25,13 +25,19 @@
 var interval = setInterval(refresh_check, 500);
 function refresh_check() {
     var client = new XMLHttpRequest();
-    client.open("GET", "{{ refresh_check_url }}", true);
+    client.open("HEAD", "{{ refresh_check_url }}", true);
     client.send();
     client.onreadystatechange = function() {
         if (this.readyState == this.HEADERS_RECEIVED) {
-            if (this.status == 200) {
+            if (this.status == 303) {  // SEE OTHER status -- aka refresh with game_url
                 clearInterval(interval);
                 window.location = "{{ game_url }}";
+            }
+            if (this.status == 404) {
+                // we actually have an error. We should show an indicator to the user
+                // and we should NOT auto-refresh since that's lead to spawning many, many games
+                // by refreshing /game, for example
+                clearInterval(interval);
             }
             client.abort();  // always abort after getting header
         }
