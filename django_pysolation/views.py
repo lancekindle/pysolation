@@ -1,7 +1,8 @@
 from __future__ import print_function
 from django.shortcuts import render
+from django.urls import reverse  # this is the correct path for 1.11, and 2.0+
 from django.db import IntegrityError
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponseRedirect
 import django
 import uuid as UUID
 import sys
@@ -22,8 +23,25 @@ def refresh(request, uuid=None, timestamp=None):
         return HttpResponse(status=304)  # NOT MODIFIED status code
     return HttpResponse(status=303)  # SEE OTHER status code -- aka refresh from another URL
 
+def join(request, uuid=None):
+    """ joins game, triggering a redirect to that game's url. If such a game does not exist, will
+        display home page with an error message
+    """
+    if not uuid:
+        uuid = request.GET.get('code', None)
+    if not uuid:
+        return HttpResponseRedirect('/game')  # redirect to index, since no join code was given
+                                                     # (basically just start a game)
+    game = models.Game.objects.filter(uuid=uuid).first()
+    if not game:
+        return render(request, 'django_pysolation/start.html', context={'error': 'no game found by that ID'})
+    return HttpResponseRedirect('/game/{}'.format(uuid))
+
 def index(request, uuid=None):
-    """ create or use first board game """
+    """ create or join a board game. If uuid is not specified, create game and
+        redirect to /game/<uuid> so that "refreshing" the browser won't trigger
+        another new game
+    """
     # now we display the main board to the user.... 
     game = None #models.Game.objects.all().first()
     if not uuid:
@@ -71,7 +89,7 @@ def manage_active_players(request, game):
     """ manage new and current players. New players are assigned an open user (if one exists). Links
     are only generated for the current active user """
     player_in_game = False
-    user_id = request.COOKIES.get('user_id')  
+    user_id = request.COOKIES.get('user_id')
     if not user_id:
         user_id = str(UUID.uuid4())
     print("uuid" + user_id, file=sys.stderr)
