@@ -80,15 +80,15 @@ class RobotGameBoard(Game.GameBoard):
     """ allow defining robots in board """
 
     def set_num_robot_players(self, numRobots):
+        """ set every other player to be a robot until numRobots is satisfied
+            start with player [1] aka 2nd player because we want the first player to be human
+        """
         if numRobots < 1:
             return
-        numPlayers = len(self.players)
-        n = int(numPlayers / numRobots)  # n is a ratio
-        for player in self.players[::n]:  # every nth  player is a robot, so we sample every nth player
+        for player in reversed(self.players):  # robots are assigned to move last
             if numRobots:  # stop once numRobots has been reached
                 player.humanControlled = False
                 numRobots -= 1
-
 
 class RobotGame(Game.Game):
     """ game handles adding robots to gameplay """
@@ -107,17 +107,16 @@ class RobotGame(Game.Game):
     def setup_robots(self, numRobots):
         """ set up robots to handle appropriate number player token """
         self.board.set_num_robot_players(numRobots)
-        for player in self.board.players:
-            if not player.humanControlled:
-                robot = MoveBot(self, self.board, player)
-                self.robots[player] = robot
+        # for player in self.board.players:
+        #     if not player.humanControlled:
+        #         self.robots[player] = robot
 
     def robot_takes_turn(self):
         """ if active player is robot (AI), will guide robot into taking part of its turn (remove-tile or move-player) """
         activePlayer = self.get_active_player()
         if activePlayer.humanControlled:
             return
-        activeRobot = self.robots[activePlayer]
+        activeRobot = MoveBot(self, self.board, activePlayer)
         if self.turnType == self.REMOVE_TILE:
             remove_tile_fxn = super(RobotGame, self).player_removes_tile
             activeRobot.take_remove_tile_turn(remove_tile_fxn)
