@@ -20,7 +20,8 @@ class _GamePieceAccess(object):
         """ return all tiles currently in dictionary. Will return fewer tiles if they haven't been
             set in the dictionary yet
         """
-        return list(self.dict_board.values())
+        return list(self.dict_board.values())  # if you get an error here, it may be because
+                                               # the django board didn't preload tiles before saving
 
     def get_player_at(self, x, y):
         """ return player attribute of tile at specified x, y coordinates """

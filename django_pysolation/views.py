@@ -20,8 +20,32 @@ def refresh(request, uuid=None, timestamp=None):
     if not game:
         raise Http404
     if timestamp == game.timestamp:
+        print('refresh game: robot_turn {} & processing {}'.format(game.robotsTurn, game.processingRobotsTurn), file=sys.stderr)
+        if game.robotsTurn and not game.processingRobotsTurn:
+            # it appears that almost every time a human has a turn, we reach here
+            # so check as well that active player is actually a robot
+            if not game.get_active_player().humanControlled:
+                return take_robot_turn(game)
         return HttpResponse(status=304)  # NOT MODIFIED status code
     return HttpResponse(status=303)  # SEE OTHER status code -- aka refresh from another URL
+
+def take_robot_turn(game):
+    # well we need to make a move for robot
+    print('processing robot turn', file=sys.stderr)
+    game.board.preload_tiles()
+    game.get_active_player()
+    game.processingRobotsTurn = True
+    game.save() # prevent future refresh requests from triggering the same function
+    game.robot_takes_turn()
+    if game.turnSuccessful:
+        print('SUCCESS robot turn', file=sys.stderr)
+        game.processingRobotsTurn = False
+        game.save()
+    else:
+        print('FAIL robot turn', file=sys.stderr)
+        raise Http404  # problem with our robot, it should never fail
+    return HttpResponse(status=303)  # refresh from game URL
+
 
 def join(request, uuid=None):
     """ joins game, triggering a redirect to that game's url. If such a game does not exist, will
@@ -81,7 +105,10 @@ def create_and_redirect_to_game(request):
         w, h = 5, 6
         board = models.Board(w=w, h=h)
         game = models.Game(board=board)
-        game.setup(2, (w,h), 0)
+        players = 2  # number of players
+        game.setup(0, (w,h), players)  # all players are robots by default
+        # when a player visits the board she'll be assigned a player, removing it's status as a robot
+        # active player on fresh board will be assigned to first user
         game.save()
         return HttpResponseRedirect('/game/{}'.format(game.uuid))
     except IntegrityError:
@@ -103,10 +130,12 @@ def manage_active_players(request, game):
         player_in_game = True
         print("player already in game", file=sys.stderr)
     else:
+        # assign user to an unassigned player token
         for player in game.board.players:
             if not player.assigned_user:
                 player_in_game = True
                 player.assigned_user = user_id
+                player.humanControlled = True
                 player.save()
                 print("player added", file=sys.stderr)
                 break

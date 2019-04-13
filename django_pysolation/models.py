@@ -48,6 +48,8 @@ class Player(models.Model, HtmlPlayer):
     colorName = models.CharField(max_length=31)
     disabled = models.BooleanField(default=False)    # True if player is unable to move
     active = models.BooleanField(default=False)  # True if it's players turn
+    # all players are robots until a player is assigned to it
+    humanControlled = models.BooleanField(default=False)
     assigned_user = models.CharField(max_length=100, default='')
 
 class Tile(models.Model, HtmlTile):
@@ -69,6 +71,8 @@ class Game(models.Model, HtmlGame):
     creation = models.AutoField(primary_key=True)
     board = models.ForeignKey(Board, on_delete=models.CASCADE)
     turnType = models.IntegerField(default=HtmlGame.MOVE_PLAYER)
+    robotsTurn = models.BooleanField(default=False)
+    processingRobotsTurn = models.BooleanField(default=False)
     uuid = models.CharField(max_length=25, unique=True)
     timestamp = models.CharField(max_length=100)  # hold time of last move
 
@@ -85,7 +89,8 @@ class Game(models.Model, HtmlGame):
         self.board.link_prepend = "/game/" + uuid
 
     def save(self, *args, **kwargs):
-        self.make_uuid()
+        """ save board & all tiles, players. Every save includes a new timestamp """
+        self.make_uuid()  # 
         self.timestamp = UUID.uuid4().hex  # update timestamp to latest modification
         print(self.board_id, file=sys.stderr)
         self.board.save()
@@ -95,9 +100,12 @@ class Game(models.Model, HtmlGame):
         # FOR SOME REASON, the board_id is not updated when I save the board
         self.board_id = self.board.creation
         # self.board = self.board
+        if not self.get_active_player().humanControlled:
+            self.robotsTurn = True
         super(Game, self).save(*args, **kwargs)
 
     def get_active_player(self):
+        """ necessary to call this before saving """
         if not hasattr(self.board, 'players'):
             # this ordering will not work for 3+ players
             self.board.players = list(Player.objects.filter(board=self.board).order_by('active'))
