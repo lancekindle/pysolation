@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/2.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
+from __future__ import print_function
 
 import os
 
@@ -23,7 +24,18 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # the SECRET_KEY variable is inside SECRET_KEY.py, not staged for git
 # to re-create a secret key, .... <TODO>
 # and also at that time decide if you still want DEBUG=True below
-from .SECRET_KEY import SECRET_KEY
+try:
+    from .SECRET_KEY import SECRET_KEY
+except ImportError:
+    import random
+    key = ''.join(random.SystemRandom().choice('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)') for i in range(50))
+    __location__ = os.path.realpath(
+        os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    secret_filename = os.path.join(__location__, 'SECRET_KEY.py')
+    with open(secret_filename, 'w') as secret_key_file:
+        print('SECRET_KEY="{}"'.format(key), file=secret_key_file)
+    raise ImportError("secret key re-generated. Try re-running AFTER you 'makemigrations' and 'migrate' the 'django_pysolation' app")
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
