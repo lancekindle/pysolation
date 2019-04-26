@@ -38,12 +38,12 @@ class Board(models.Model, HtmlGameBoard):
     def save(self, *args, **kwargs):
         """ save all players and tiles in database. Will only save currently loaded tiles """
         super(Board, self).save(*args, **kwargs)
-        for tile in self.get_all_tiles():
-            tile.board = self
-            tile.save()
         for player in self.players:
             player.board = self
             player.save()
+        for tile in self.get_all_tiles():
+            tile.board = self
+            tile.save()
     
     def preload_tiles(self):
         """ preload all tiles back into dictionary. Currently, each board refresh redoes the whole board
@@ -70,6 +70,7 @@ class Player(models.Model, HtmlPlayer):
 class Tile(models.Model, HtmlTile):
     creation = models.AutoField(primary_key=True)
     board = models.ForeignKey(Board, on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, null=True, blank=True, on_delete=models.CASCADE)
     x = models.IntegerField()
     y = models.IntegerField()
     ID = models.CharField(max_length=15)
