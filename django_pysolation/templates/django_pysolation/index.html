@@ -10,15 +10,10 @@
     div.player.active { border: 2px solid white; box-sizing: border-box; }'
     div.player.disabled { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.5) 5px, rgba(0, 0, 0, 0.5) 10px)}'
 {% endcomment %}
-{% with game.get_style as style %}
-<style>
-    {{ style | safe }}
-</style>
-{% endwith %}
 <h3>A friend can join you with this code:</h3>
 <h2>{{ game.uuid }}<h2>
 <br>
-{% with board.get_html as html %}
+{% with game.get_html as html %}
     {{ html | safe }}
 {% endwith %}
 <script>

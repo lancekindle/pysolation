@@ -16,7 +16,8 @@ def refresh(request, uuid=None, timestamp=None):
     """ returns status code 200 only when game has updated from given timestamp """
     if uuid is None or timestamp is None:
         raise Http404
-    game = models.Game.objects.filter(uuid=uuid).first()
+    game = models.Game.objects.filter(uuid=uuid).first() or \
+           models.Game.objects.filter(uuid=uuid.upper()).first()
     if not game:
         raise Http404
     if timestamp == game.timestamp:
@@ -33,7 +34,7 @@ def take_robot_turn(game):
     # well we need to make a move for robot
     print('processing robot turn', file=sys.stderr)
     game.board.preload_tiles()
-    game.get_active_player()
+    game.get_active_player()  # workaround to pre-load players
     game.processingRobotsTurn = True
     game.save() # prevent future refresh requests from triggering the same function
     game.robot_takes_turn()
@@ -60,7 +61,8 @@ def join(request, uuid=None):
     game = models.Game.objects.filter(uuid=uuid).first() or \
            models.Game.objects.filter(uuid=uuid.upper()).first()
     if not game:
-        return render(request, 'django_pysolation/start.html', context={'error': 'no game found by that ID'})
+        context = {'error': 'no game found by ID "{}"'.format(uuid)}
+        return render(request, 'django_pysolation/start.html', context=context)
     return HttpResponseRedirect('/game/{}'.format(uuid))
 
 def index(request, uuid=None):
@@ -85,8 +87,7 @@ def index(request, uuid=None):
         return create_and_redirect_to_game(request)
     else:
         print("game found", file=sys.stderr)
-        game.get_active_player()  # workaround to load and show players on html page
-    user_id = manage_active_players(request, game)
+    user_id, is_active_player = manage_active_players(request, game)
     game_url = "/game/" + game.uuid
     context = {
             "game_url": game_url,
@@ -118,13 +119,16 @@ def create_and_redirect_to_game(request):
 
 
 def manage_active_players(request, game):
-    """ manage new and current players. New players are assigned an open user (if one exists). Links
-    are only generated for the current active user """
+    """ manage new and current players. New players are assigned an open user
+        (if one exists). returns (user_id, is_active_player) where
+        is_active_player is boolean if it's player's turn
+    """
     player_in_game = False
     user_id = request.COOKIES.get('user_id')
     if not user_id:
         user_id = str(UUID.uuid4())
     print("uuid" + user_id, file=sys.stderr)
+    game.get_active_player()  # workaround to preload players
     current_users = [player.assigned_user for player in game.board.players]
     if user_id in current_users:
         player_in_game = True
@@ -139,29 +143,23 @@ def manage_active_players(request, game):
                 player.save()
                 print("player added", file=sys.stderr)
                 break
-    user_is_active = False  # set to True if we should make links visible (since it's his turn)
     if player_in_game:
         if game.get_active_player().assigned_user == user_id:
-            user_is_active = True
-    if user_is_active:
-        game.set_link_prepend(game.uuid)
-        game.prep_links()  # pre-fetches tiles so they can have urls rewritten
-        game.prep_links()  # actually sets tiles with correct urls
+            game.user_is_active = True
+    if game.user_is_active:
         print("player ACTIVE", file=sys.stderr)
     else:
         print("player not active", file=sys.stderr)
-    return user_id
+    return user_id, game.user_is_active
 
 
 def game_landing(request, uuid):
     """ game is loaded by uuid """
     game = models.Game.objects.filter(uuid=uuid).first() or \
            models.Game.objects.filter(uuid=uuid.upper()).first()
-    game.board.preload_tiles()
-    user_id = manage_active_players(request, game)
+    user_id, is_active = manage_active_players(request, game)
     if not game:
         return HttpResponse("Game not found")
-    game.get_active_player()  # workaround to load and show players on html page
     game_url = "/game/" + game.uuid
     context = {
             "game_url": game_url,
@@ -176,13 +174,13 @@ def game_landing(request, uuid):
 
 def move_player_to(request, uuid, x, y):
     x, y = int(x), int(y)
-    game = models.Game.objects.filter(uuid=uuid).first()
+    game = models.Game.objects.filter(uuid=uuid).first() or \
+           models.Game.objects.filter(uuid=uuid.upper()).first()
     game.board.preload_tiles()
-    game.player_moves_player(x, y)
-    user_id = manage_active_players(request, game)
-    print(game.turnSuccessful, file=sys.stderr)
-    active = game.get_active_player()
-    print(active.x, active.y, file=sys.stderr)
+    user_id, is_active_player = manage_active_players(request, game)
+    if is_active_player:
+        game.player_moves_player(x, y)
+    print("move turn success?", game.turnSuccessful, file=sys.stderr)
     if game.turnSuccessful:
         game.save()
     game_url = "/game/" + game.uuid
@@ -199,13 +197,12 @@ def move_player_to(request, uuid, x, y):
 
 def remove_tile_at(request, uuid, x, y):
     x, y = int(x), int(y)
-    game = models.Game.objects.filter(uuid=uuid).first()
-    game.board.preload_tiles()
-    game.player_removes_tile(x, y)
-    user_id = manage_active_players(request, game)
-    print(game.turnSuccessful, file=sys.stderr)
-    active = game.get_active_player()
-    print(active.x, active.y, file=sys.stderr)
+    game = models.Game.objects.filter(uuid=uuid).first() or \
+           models.Game.objects.filter(uuid=uuid.upper()).first()
+    user_id, is_active_player = manage_active_players(request, game)
+    if is_active_player:
+        game.player_removes_tile(x, y)
+    print("remove turn success?", game.turnSuccessful, file=sys.stderr)
     if game.turnSuccessful:
         game.save()
     game_url = "/game/" + game.uuid

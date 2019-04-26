@@ -9,6 +9,21 @@ class Board(models.Model, HtmlGameBoard):
     w = models.IntegerField()
     h = models.IntegerField()
 
+    _players = []
+
+    @property
+    def players(self):
+        """ get players list, from DB if necessary"""
+        if not self._players:
+            self._players = list(Player.objects.filter(board=self).order_by('active'))
+            self._players.reverse()
+        return self._players
+    
+    @players.setter
+    def players(self, player_list):
+        """ set players list """
+        self._players = player_list
+
     def get(self, x, y):
         """ get tile from cache (board) or retrieve from database """
         try:
@@ -76,6 +91,9 @@ class Game(models.Model, HtmlGame):
     uuid = models.CharField(max_length=25, unique=True)
     timestamp = models.CharField(max_length=100)  # hold time of last move
 
+    user_is_active = False  # will be changed when managing users
+    turnSuccessful = False  # will be changed when turn is successful
+
     def make_uuid(self):
         if not self.uuid:
             sample = UUID.uuid4()
@@ -87,16 +105,20 @@ class Game(models.Model, HtmlGame):
         if not uuid:
             uuid = self.uuid
         self.board.link_prepend = "/game/" + uuid
+    
+    def prep_links(self):
+        if not self.user_is_active:
+            print("NOT prepping links", file=sys.stderr)
+            return
+        print("prep links", file=sys.stderr)
+        self.set_link_prepend()
+        return super(Game, self).prep_links()
 
     def save(self, *args, **kwargs):
         """ save board & all tiles, players. Every save includes a new timestamp """
         self.make_uuid()  # 
         self.timestamp = UUID.uuid4().hex  # update timestamp to latest modification
-        print(self.board_id, file=sys.stderr)
         self.board.save()
-        print(self.board, file=sys.stderr)
-        print(self.board.creation, file=sys.stderr)
-        print(self.board.get_all_tiles(), file=sys.stderr)
         # FOR SOME REASON, the board_id is not updated when I save the board
         self.board_id = self.board.creation
         # self.board = self.board
@@ -106,10 +128,7 @@ class Game(models.Model, HtmlGame):
 
     def get_active_player(self):
         """ necessary to call this before saving """
-        if not hasattr(self.board, 'players'):
-            # this ordering will not work for 3+ players
-            self.board.players = list(Player.objects.filter(board=self.board).order_by('active'))
-            self.board.players.reverse()
+        # this ordering will not work for 3+ players
         for player in self.board.players:
             # place players on their respective tiles. Workaround for html players not showing up
             tile = self.board.get(player.x, player.y)
