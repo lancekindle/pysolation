@@ -137,10 +137,11 @@ class HtmlGame(RobotGame):
         """
         self.prep_links()
         html = self.board.get_html()
-        style = self.get_style('50px')  # even though it's a class method, we called using self, meaning
+        # style = self.get_style('50px')  # even though it's a class method, we called using self, meaning
                             # that the function will use this instance and its variables instead of the class's
         script = self.get_scripts()
-        return '<style>' + style  + '</style>' + html + script
+        return html + script
+        # return '<style>' + style  + '</style>' + html + script
     
     @classmethod
     def get_style(cls, size='50px'):

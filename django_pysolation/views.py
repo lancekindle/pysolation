@@ -1,6 +1,9 @@
 from __future__ import print_function
 from django.shortcuts import render
-from django.urls import reverse  # this is the correct path for 1.11, and 2.0+
+try:
+    from django.core.urlresolvers import reverse  # correct path 1.8.14
+except:
+    from django.urls import reverse  # this is the correct path for 1.11, and 2.0+
 from django.db import IntegrityError
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 import django

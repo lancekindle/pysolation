@@ -1,20 +1,24 @@
 <html>
-{% comment %}
-    div.row { overflow: hidden; }
-    div.tile { position: relative; width: 50px; height: 50px; float: left; margin: 2px; }
+<style>
+    div.board_wrap { text-align:center; align-items: stretch; display:flex }
+    div.board { flex-wrap: wrap; align-items: stretch; display: inline-block}
+    div.row { align-items: stretch; flex-grow: 1; flex-wrap: nowrap; overflow: hidden; }
+    div.tile { flex-grow: 1; height: 100%; float: left; margin: 2px; }
     div.tile.visible { background-color: #FF9912 }
     div.tile.hidden { background-color: transparent; }
     div.tile.link { cursor: pointer; }
-    a.tile-link { display: block; width: 50px; height: 50px; }
+    a.tile-link { display: block; width: 100%; height: 100%; }
     div.player { width: 50px; height: 50px; border-radius: 50%; }'
     div.player.active { border: 2px solid white; box-sizing: border-box; }'
     div.player.disabled { background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.5) 5px, rgba(0, 0, 0, 0.5) 10px)}'
-{% endcomment %}
+</style>
 <h3>A friend can join you with this code:</h3>
 <h2>{{ game.uuid }}<h2>
 <br>
 {% with game.get_html as html %}
+<div class='board_wrap'>
     {{ html | safe }}
+</div>
 {% endwith %}
 <script>
 var interval = setInterval(refresh_check, 500);
